@@ -90,27 +90,42 @@ function readJsonBody(req) {
   });
 }
 
-function logAudit(projectId, activityId, user, action, entityType, entityRef, details) {
-  db.prepare(`
-    INSERT INTO audit_logs (project_id, activity_id, user_name, user_role, action, entity_type, entity_ref, details)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    projectId || null,
-    activityId || null,
-    user ? user.full_name : 'System',
-    user ? user.role : 'SYSTEM',
-    action,
-    entityType,
-    entityRef || '',
-    details || ''
-  );
+async function logAudit(projectId, activityId, user, action, entityType, entityRef, details) {
+  try {
+    await db.prepare(`
+      INSERT INTO audit_logs (project_id, activity_id, user_name, user_role, action, entity_type, entity_ref, details)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      projectId || null,
+      activityId || null,
+      user ? user.full_name : 'System',
+      user ? user.role : 'SYSTEM',
+      action,
+      entityType,
+      entityRef || '',
+      details || ''
+    );
+  } catch (e) {
+    // Audit failure non-blocking
+  }
 }
 
-function getCurrentUser(reqUrl, reqHeaders) {
+async function getCurrentUser(reqUrl, reqHeaders) {
   const uid = reqUrl.searchParams.get('userId') || reqHeaders['x-user-id'] || '2';
-  let user = db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users WHERE id = ? OR username = ?').get(uid, uid);
+  let user = await db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users WHERE id = ? OR username = ?').get(uid, uid);
   if (!user) {
-    user = db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users ORDER BY id ASC LIMIT 1').get();
+    user = await db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users ORDER BY id ASC LIMIT 1').get();
+  }
+  if (!user) {
+    return {
+      id: 2,
+      username: 'manager_tihc',
+      full_name: 'TIHC Dissemination Manager',
+      email: 'dissemination@katartisi.gr',
+      role: 'DISSEMINATION_MANAGER',
+      partner_code: 'TIHC',
+      project_ids: ['*']
+    };
   }
   return {
     ...user,
@@ -124,9 +139,11 @@ function canUserAccessProject(user, projectId) {
   return user.project_ids.map(Number).includes(Number(projectId));
 }
 
-function computeKpiProgress(projectId) {
-  const kpis = db.prepare('SELECT * FROM kpis WHERE project_id = ? ORDER BY id ASC').all(projectId);
-  const activities = db.prepare('SELECT * FROM activities WHERE project_id = ?').all(projectId);
+async function computeKpiProgress(projectId) {
+  const kpisRaw = await db.prepare('SELECT * FROM kpis WHERE project_id = ? ORDER BY id ASC').all(projectId);
+  const activitiesRaw = await db.prepare('SELECT * FROM activities WHERE project_id = ?').all(projectId);
+  const kpis = kpisRaw || [];
+  const activities = activitiesRaw || [];
 
   return kpis.map(k => {
     let filtered = activities;
@@ -177,13 +194,15 @@ function computeKpiProgress(projectId) {
   });
 }
 
-function buildBootstrapData(projectId, user) {
-  const allUsers = db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users ORDER BY id ASC').all().map(u => ({
+async function buildBootstrapData(projectId, user) {
+  const allUsersRaw = await db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users ORDER BY id ASC').all();
+  const allUsers = (allUsersRaw || []).map(u => ({
     ...u,
     project_ids: JSON.parse(u.project_ids_json || '["*"]')
   }));
 
-  const allProjects = db.prepare('SELECT * FROM projects ORDER BY id ASC').all()
+  const allProjectsRaw = await db.prepare('SELECT * FROM projects ORDER BY id ASC').all();
+  const allProjects = (allProjectsRaw || [])
     .filter(p => canUserAccessProject(user, p.id))
     .map(p => ({
       ...p,
@@ -198,31 +217,31 @@ function buildBootstrapData(projectId, user) {
   }
 
   const pid = activeProject.id;
-  const partners = db.prepare('SELECT * FROM partners WHERE project_id = ? ORDER BY id ASC').all(pid);
-  const reportingPeriods = db.prepare('SELECT * FROM reporting_periods WHERE project_id = ? ORDER BY id ASC').all(pid);
-  const kpis = computeKpiProgress(pid);
+  const partners = (await db.prepare('SELECT * FROM partners WHERE project_id = ? ORDER BY id ASC').all(pid)) || [];
+  const reportingPeriods = (await db.prepare('SELECT * FROM reporting_periods WHERE project_id = ? ORDER BY id ASC').all(pid)) || [];
+  const kpis = await computeKpiProgress(pid);
 
-  const rawActivities = db.prepare(`
+  const rawActivities = (await db.prepare(`
     SELECT a.*, p.name as partner_name, p.code as partner_code, p.country as partner_country, p.country_code as partner_country_code, p.logo_url as partner_logo
     FROM activities a
     JOIN partners p ON a.partner_id = p.id
     WHERE a.project_id = ?
     ORDER BY a.partner_id ASC, a.excel_row_num ASC, a.id DESC
-  `).all(pid);
+  `).all(pid)) || [];
 
-  const allEvidence = db.prepare('SELECT * FROM evidence_files WHERE project_id = ? ORDER BY version DESC, id ASC').all(pid);
+  const allEvidence = (await db.prepare('SELECT * FROM evidence_files WHERE project_id = ? ORDER BY version DESC, id ASC').all(pid)) || [];
   const evidenceByAct = {};
   for (const ev of allEvidence) {
     if (!evidenceByAct[ev.activity_id]) evidenceByAct[ev.activity_id] = [];
     evidenceByAct[ev.activity_id].push(ev);
   }
 
-  const allComments = db.prepare(`
+  const allComments = (await db.prepare(`
     SELECT c.* FROM activity_comments c
     JOIN activities a ON c.activity_id = a.id
     WHERE a.project_id = ?
     ORDER BY c.id ASC
-  `).all(pid);
+  `).all(pid)) || [];
   const commentsByAct = {};
   for (const cm of allComments) {
     if (!commentsByAct[cm.activity_id]) commentsByAct[cm.activity_id] = [];
@@ -284,8 +303,8 @@ function buildBootstrapData(projectId, user) {
     };
   });
 
-  const auditLogs = db.prepare('SELECT * FROM audit_logs WHERE project_id = ? OR project_id IS NULL ORDER BY id DESC LIMIT 100').all(pid);
-  const notifications = db.prepare('SELECT * FROM email_notifications WHERE project_id = ? ORDER BY id DESC LIMIT 50').all(pid);
+  const auditLogs = (await db.prepare('SELECT * FROM audit_logs WHERE project_id = ? OR project_id IS NULL ORDER BY id DESC LIMIT 100').all(pid)) || [];
+  const notifications = (await db.prepare('SELECT * FROM email_notifications WHERE project_id = ? ORDER BY id DESC LIMIT 50').all(pid)) || [];
 
   return {
     user,
@@ -414,9 +433,9 @@ async function requestHandler(req, res) {
 
     // 2. API Bootstrap
     if (pathname === '/api/bootstrap' && req.method === 'GET') {
-      const user = getCurrentUser(reqUrl, req.headers);
+      const user = await getCurrentUser(reqUrl, req.headers);
       const projectId = reqUrl.searchParams.get('projectId') || 1;
-      const data = buildBootstrapData(projectId, user);
+      const data = await buildBootstrapData(projectId, user);
       return sendJson(res, 200, data);
     }
 
@@ -1247,14 +1266,14 @@ async function requestHandler(req, res) {
 
     // 5. Printable / PDF Official Report View (Bilingual: EN default, EL optional)
     if (pathname === '/api/export/report-pdf-view' && req.method === 'GET') {
-      const user = getCurrentUser(reqUrl, req.headers);
+      const user = await getCurrentUser(reqUrl, req.headers);
       const projectId = Number(reqUrl.searchParams.get('projectId') || 1);
       const partnerIdFilter = reqUrl.searchParams.get('partnerId') || '';
       const statusFilter = reqUrl.searchParams.get('status') || '';
       const lang = reqUrl.searchParams.get('lang') === 'el' ? 'el' : 'en';
       const isEl = lang === 'el';
 
-      const data = buildBootstrapData(projectId, user);
+      const data = await buildBootstrapData(projectId, user);
       const p = data.activeProject;
       let acts = data.activities;
       if (partnerIdFilter) acts = acts.filter(a => String(a.partner_id) === String(partnerIdFilter));
