@@ -91,7 +91,6 @@ const db = {
         run: async () => ({ changes: 0, lastInsertRowid: 0 })
       };
     }
-    }
   },
 
   async exec(sql) {

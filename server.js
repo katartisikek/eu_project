@@ -20,12 +20,17 @@ const { verifyPassword, createSession, getSession } = require('./src/auth');
 
 const PORT = Number(process.env.PORT) || 3080;
 const HOST = process.env.HOST || '0.0.0.0';
+const isVercel = Boolean(process.env.VERCEL);
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR = isVercel ? '/tmp/uploads' : path.join(__dirname, 'uploads');
 const CUSTOM_UPLOADS_DIR = path.join(UPLOADS_DIR, 'custom');
 
-if (!fs.existsSync(CUSTOM_UPLOADS_DIR)) {
-  fs.mkdirSync(CUSTOM_UPLOADS_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(CUSTOM_UPLOADS_DIR)) {
+    fs.mkdirSync(CUSTOM_UPLOADS_DIR, { recursive: true });
+  }
+} catch (e) {
+  // Gracefully ignore read-only filesystems in serverless cloud environments
 }
 
 const MIME_TYPES = {
@@ -389,8 +394,11 @@ async function requestHandler(req, res) {
     // 1. Serve Uploaded Evidence Files
     if (pathname.startsWith('/uploads/')) {
       const relPath = pathname.replace(/^\/uploads\//, '');
-      const safePath = path.normalize(path.join(UPLOADS_DIR, relPath));
-      if (!safePath.startsWith(UPLOADS_DIR) || !fs.existsSync(safePath) || fs.statSync(safePath).isDirectory()) {
+      let safePath = path.normalize(path.join(PUBLIC_DIR, 'uploads', relPath));
+      if (!fs.existsSync(safePath) || fs.statSync(safePath).isDirectory()) {
+        safePath = path.normalize(path.join(UPLOADS_DIR, relPath));
+      }
+      if (!fs.existsSync(safePath) || fs.statSync(safePath).isDirectory()) {
         res.writeHead(404);
         res.end('File not found');
         return;
