@@ -125,11 +125,38 @@ async function loadBootstrap() {
 }
 
 function renderHeaderAndNav() {
+  const projSel = document.getElementById('projectSelector');
+  const userSel = document.getElementById('userRoleSelector');
+  const authBtn = document.getElementById('authBtn');
+  const roleBadge = document.getElementById('activeRoleBadge');
+  const ctxBar = document.getElementById('projectContextBar');
+  const navBar = document.querySelector('.main-nav');
+
+  if (authBtn) {
+    authBtn.innerHTML = state.authToken ? `🚪 ${t('logout')}` : `🔐 ${t('login')}`;
+  }
+
+  // If user is not authenticated, hide internal controls and context bar
+  if (!state.authToken) {
+    if (projSel && projSel.parentElement) projSel.parentElement.style.display = 'none';
+    if (userSel && userSel.parentElement) userSel.parentElement.style.display = 'none';
+    if (roleBadge) roleBadge.style.display = 'none';
+    if (ctxBar) ctxBar.style.display = 'none';
+    if (navBar) navBar.style.display = 'none';
+    return;
+  }
+
+  // Restore display when authenticated
+  if (projSel && projSel.parentElement) projSel.parentElement.style.display = 'flex';
+  if (userSel && userSel.parentElement) userSel.parentElement.style.display = 'flex';
+  if (roleBadge) roleBadge.style.display = 'inline-flex';
+  if (ctxBar) ctxBar.style.display = 'block';
+  if (navBar) navBar.style.display = 'block';
+
   if (!state.bootstrap) return;
   const { user, users, projects, activeProject, activities, partnerPendingMatrix } = state.bootstrap;
 
   // Project Selector
-  const projSel = document.getElementById('projectSelector');
   if (projSel) {
     projSel.innerHTML = projects.map(p =>
       `<option value="${p.id}" ${p.id === state.currentProjectId ? 'selected' : ''}>${escapeHtml(p.acronym)} — ${escapeHtml(p.project_number)}</option>`
@@ -142,7 +169,6 @@ function renderHeaderAndNav() {
   }
 
   // User Role Selector
-  const userSel = document.getElementById('userRoleSelector');
   if (userSel) {
     userSel.innerHTML = users.map(u =>
       `<option value="${u.id}" ${u.id === user.id ? 'selected' : ''}>${escapeHtml(u.full_name)} [${u.role}]</option>`
@@ -155,19 +181,16 @@ function renderHeaderAndNav() {
   }
 
   // Auth Button
-  const authBtn = document.getElementById('authBtn');
   if (authBtn) {
     authBtn.innerHTML = state.authToken ? `🚪 ${t('logout')}` : `🔐 ${t('login')}`;
   }
 
   // Active Role Badge
-  const roleBadge = document.getElementById('activeRoleBadge');
   if (roleBadge) {
     roleBadge.innerHTML = `🛡️ ${escapeHtml(getRoleLabel(user.role))}${user.partner_code ? ` • ${escapeHtml(user.partner_code)}` : ''}`;
   }
 
   // Project Context Bar
-  const ctxBar = document.getElementById('projectContextBar');
   if (ctxBar) {
     if (!activeProject) {
       ctxBar.innerHTML = `<div class="project-context-inner">No active project found for current user.</div>`;
@@ -343,6 +366,13 @@ function jumpToPartnerActivities(partnerId, statusFilter = '', missingOnly = fal
 
 function renderMainView() {
   const container = document.getElementById('mainViewContainer');
+
+  // If not logged in, render the institutional public landing page
+  if (!state.authToken) {
+    container.innerHTML = renderPublicLandingPage();
+    return;
+  }
+
   if (!state.bootstrap || !state.bootstrap.activeProject) {
     container.innerHTML = `<div class="card">No project data available.</div>`;
     return;
@@ -377,6 +407,366 @@ function renderMainView() {
       break;
     default:
       container.innerHTML = renderDashboardView();
+  }
+}
+
+/* ============================================================================
+   0. PUBLIC INSTITUTIONAL LANDING PAGE
+   ============================================================================ */
+function renderPublicLandingPage() {
+  const isEl = state.currentLang === 'el';
+  const bootstrap = state.bootstrap || {};
+  const totalActs = bootstrap.activities ? bootstrap.activities.length : 124;
+
+  return `
+    <div class="landing-page-wrapper">
+      <!-- HERO BANNER -->
+      <section class="landing-hero">
+        <div class="landing-grid">
+          <!-- Left Column: Value Proposition & Pillars -->
+          <div>
+            <div class="landing-badge">
+              <span>${t('landingBadge')}</span>
+            </div>
+            <h1 class="landing-hero-title">${t('landingHeroTitle')}</h1>
+            <p class="landing-hero-subtitle">${t('landingHeroSubtitle')}</p>
+
+            <div class="landing-feature-list">
+              <div class="landing-feature-item">
+                <div class="landing-feature-icon">⚖️</div>
+                <div>
+                  <strong style="color:#ffffff;">${t('landingFeat1Title')}</strong>
+                  <div style="font-size:12.5px; color:#cbd5e1; margin-top:2px;">${t('landingFeat1Desc')}</div>
+                </div>
+              </div>
+
+              <div class="landing-feature-item">
+                <div class="landing-feature-icon">🛡️</div>
+                <div>
+                  <strong style="color:#ffffff;">${t('landingFeat2Title')}</strong>
+                  <div style="font-size:12.5px; color:#cbd5e1; margin-top:2px;">${t('landingFeat2Desc')}</div>
+                </div>
+              </div>
+
+              <div class="landing-feature-item">
+                <div class="landing-feature-icon">⏱️</div>
+                <div>
+                  <strong style="color:#ffffff;">${t('landingFeat3Title')}</strong>
+                  <div style="font-size:12.5px; color:#cbd5e1; margin-top:2px;">${t('landingFeat3Desc')}</div>
+                </div>
+              </div>
+
+              <div class="landing-feature-item">
+                <div class="landing-feature-icon">📊</div>
+                <div>
+                  <strong style="color:#ffffff;">${t('landingFeat4Title')}</strong>
+                  <div style="font-size:12.5px; color:#cbd5e1; margin-top:2px;">${t('landingFeat4Desc')}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Institutional Direct Login Box -->
+          <div>
+            <div class="landing-login-box">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <div style="font-size:24px;">🔐</div>
+                <div>
+                  <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">${t('landingLoginTitle')}</h3>
+                  <div style="font-size:12px; color:#64748b;">${t('landingLoginSub')}</div>
+                </div>
+              </div>
+
+              <form id="landingLoginForm" onsubmit="handleLandingLoginSubmit(event)" style="margin-top:16px;">
+                <div style="margin-bottom:14px;">
+                  <label class="stat-label" style="font-weight:700; color:#334155; margin-bottom:6px; display:block;">
+                    ${t('loginUsername')}
+                  </label>
+                  <input type="text" id="landing_username" class="form-control" value="tsikalas@katartisi.com" required style="padding:10px 12px; font-size:13.5px; border-radius:8px;">
+                </div>
+
+                <div style="margin-bottom:18px;">
+                  <label class="stat-label" style="font-weight:700; color:#334155; margin-bottom:6px; display:block;">
+                    ${t('loginPassword')}
+                  </label>
+                  <input type="password" id="landing_password" class="form-control" value="Kat123!!" required style="padding:10px 12px; font-size:13.5px; border-radius:8px;">
+                </div>
+
+                <button type="submit" id="landing_submit_btn" class="btn btn-primary" style="width:100%; padding:11px 16px; font-size:14px; font-weight:700; justify-content:center; box-shadow:0 4px 12px rgba(30, 58, 138, 0.25);">
+                  ${t('landingSignInBtn')}
+                </button>
+              </form>
+
+              <!-- Quick Presets -->
+              <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
+                <div style="font-size:11.5px; font-weight:700; color:#64748b; margin-bottom:8px;">
+                  ${t('landingQuickLogins')}
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('tsikalas@katartisi.com', 'Kat123!!')">
+                    👑 Super Admin (tsikalas)
+                  </button>
+                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('manager_tihc', 'ManagerTIHC2026!')">
+                    🇬🇷 Dissemination Leader
+                  </button>
+                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('editor_bfe', 'Bfe2026!')">
+                    🇧🇬 Bulgaria (BFE)
+                  </button>
+                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('editor_mindshift', 'Mindshift2026!')">
+                    🇵🇹 Portugal (Mindshift)
+                  </button>
+                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('reviewer_eu', 'Reviewer2026!')">
+                    🇪🇺 Auditor (EU)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STATS & IMPACT COUNTER -->
+      <section style="margin-bottom:36px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:18px;">
+          <div class="landing-stat-card">
+            <div class="landing-stat-icon" style="background:rgba(30, 58, 138, 0.1); color:#1e3a8a;">📋</div>
+            <div>
+              <div class="landing-stat-val">${totalActs}</div>
+              <div class="landing-stat-lbl">${t('landingStatActivities')}</div>
+              <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${t('landingStatActivitiesSub')}</div>
+            </div>
+          </div>
+
+          <div class="landing-stat-card">
+            <div class="landing-stat-icon" style="background:rgba(13, 148, 136, 0.1); color:#0d9488;">🌍</div>
+            <div>
+              <div class="landing-stat-val">5</div>
+              <div class="landing-stat-lbl">${t('landingStatCountries')}</div>
+              <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${t('landingStatCountriesSub')}</div>
+            </div>
+          </div>
+
+          <div class="landing-stat-card">
+            <div class="landing-stat-icon" style="background:rgba(217, 119, 6, 0.1); color:#d97706;">👥</div>
+            <div>
+              <div class="landing-stat-val">30,000+</div>
+              <div class="landing-stat-lbl">${t('landingStatReach')}</div>
+              <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${t('landingStatReachSub')}</div>
+            </div>
+          </div>
+
+          <div class="landing-stat-card">
+            <div class="landing-stat-icon" style="background:rgba(22, 101, 52, 0.1); color:#166534;">📁</div>
+            <div>
+              <div class="landing-stat-val">100+</div>
+              <div class="landing-stat-lbl">${t('landingStatEvidence')}</div>
+              <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${t('landingStatEvidenceSub')}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACTIVE PROJECTS SHOWCASE -->
+      <section style="margin-bottom:36px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <h2 style="font-size:20px; font-weight:800; color:#0f172a; margin:0 0 4px 0;">${t('landingActiveProjects')}</h2>
+            <div style="font-size:13px; color:#64748b;">${isEl ? 'Προγράμματα Erasmus+ υπό ενιαία παρακολούθηση διάχυσης' : 'Erasmus+ projects managed within the unified platform'}</div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:20px;">
+          <!-- Project 1: IN-BOUND -->
+          <div class="landing-project-card">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <span class="proj-badge" style="font-size:13px; padding:4px 10px;">IN-BOUND</span>
+                <span class="badge badge-success" style="font-size:11.5px;">Active (2021 - 2024)</span>
+              </div>
+              <h3 style="font-size:16px; font-weight:700; color:#0f172a; margin:0 0 8px 0; line-height:1.4;">
+                ${isEl ? 'Καινοτόμες Διεπιστημονικές Προσεγγίσεις στην Επαγγελματική Εκπαίδευση & Κατάρτιση' : 'Innovative Interdisciplinary Approaches in Vocational Education & Training'}
+              </h3>
+              <div style="font-size:12.5px; color:#64748b; margin-bottom:16px;">
+                <strong>${t('projectCode')}:</strong> 2021-1-FI01-KA220-VET-000032984
+              </div>
+
+              <div style="background:#f8fafc; border-radius:8px; padding:12px; font-size:12px; display:flex; flex-direction:column; gap:6px; border:1px solid #e2e8f0;">
+                <div><strong>${t('coordinator')}:</strong> Tampereen ammattikorkeakoulu (TAMK) — Finland</div>
+                <div><strong>${t('disseminationLeader')}:</strong> Technical Schools of the Chamber of Heraklion (TIHC) — Greece</div>
+                <div><strong>Consortium:</strong> TIHC (GR), BFE (BG), Mindshift (PT), TAMK (FI), Pendik (TR)</div>
+              </div>
+            </div>
+
+            <div style="margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:#059669; font-weight:700;">✅ 124 Activities Logged</span>
+              <span style="font-size:12px; color:#64748b;">Erasmus+ KA220-VET</span>
+            </div>
+          </div>
+
+          <!-- Project 2: NO ONE BEHIND! -->
+          <div class="landing-project-card">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <span class="proj-badge" style="font-size:13px; padding:4px 10px; background:#475569;">NO ONE BEHIND!</span>
+                <span class="badge" style="background:#f1f5f9; color:#475569; font-size:11.5px;">Multi-Partner</span>
+              </div>
+              <h3 style="font-size:16px; font-weight:700; color:#0f172a; margin:0 0 8px 0; line-height:1.4;">
+                ${isEl ? 'Συμπεριληπτικές Ψηφιακές & Πράσινες Δεξιότητες για Όλους τους Καταρτιζόμενους' : 'Inclusive Digital & Green Vocational Pathways for All Learners'}
+              </h3>
+              <div style="font-size:12.5px; color:#64748b; margin-bottom:16px;">
+                <strong>${t('projectCode')}:</strong> KA220-VET-2023-018
+              </div>
+
+              <div style="background:#f8fafc; border-radius:8px; padding:12px; font-size:12px; display:flex; flex-direction:column; gap:6px; border:1px solid #e2e8f0;">
+                <div><strong>${t('disseminationLeader')}:</strong> Technical Schools of the Chamber of Heraklion (TIHC)</div>
+                <div><strong>Framework:</strong> Multi-Project Dissemination Monitoring & Synthesis</div>
+                <div><strong>Status:</strong> Ready for consortium activity data entry & verification</div>
+              </div>
+            </div>
+
+            <div style="margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:#2563eb; font-weight:700;">🔄 Active Framework</span>
+              <span style="font-size:12px; color:#64748b;">Erasmus+ KA220</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONSORTIUM PARTNERS -->
+      <section style="margin-bottom:36px;">
+        <h2 style="font-size:20px; font-weight:800; color:#0f172a; margin:0 0 4px 0;">${t('landingConsortium')}</h2>
+        <div style="font-size:13px; color:#64748b; margin-bottom:16px;">
+          ${isEl ? 'Διεθνές εταιρικό σχήμα ευρωπαϊκών προγραμμάτων' : 'International partner organisations collaborating across Europe'}
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px;">
+          <div class="landing-partner-pill">
+            <span style="font-size:24px;">🇬🇷</span>
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#0f172a;">TIHC (Greece)</div>
+              <div style="font-size:11px; color:#64748b;">Dissemination Leader</div>
+            </div>
+          </div>
+
+          <div class="landing-partner-pill">
+            <span style="font-size:24px;">🇧🇬</span>
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#0f172a;">BFE (Bulgaria)</div>
+              <div style="font-size:11px; color:#64748b;">Partner Organisation</div>
+            </div>
+          </div>
+
+          <div class="landing-partner-pill">
+            <span style="font-size:24px;">🇵🇹</span>
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#0f172a;">Mindshift (Portugal)</div>
+              <div style="font-size:11px; color:#64748b;">Partner Organisation</div>
+            </div>
+          </div>
+
+          <div class="landing-partner-pill">
+            <span style="font-size:24px;">🇫🇮</span>
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#0f172a;">TAMK (Finland)</div>
+              <div style="font-size:11px; color:#64748b;">Project Coordinator</div>
+            </div>
+          </div>
+
+          <div class="landing-partner-pill">
+            <span style="font-size:24px;">🇹🇷</span>
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#0f172a;">Pendik (Turkey)</div>
+              <div style="font-size:11px; color:#64748b;">Partner Organisation</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUALITY & REGULATORY COMPLIANCE -->
+      <section style="margin-bottom:36px; background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:28px; box-shadow:var(--shadow-sm);">
+        <h2 style="font-size:18px; font-weight:800; color:#0f172a; margin:0 0 16px 0;">🛡️ ${t('landingComplianceTitle')}</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:24px;">
+          <div>
+            <div style="font-weight:700; font-size:13.5px; color:#1e3a8a; margin-bottom:6px;">
+              ⚖️ ${isEl ? 'Διαχωρισμός Μετρικών (Ενότητες 4Ε & 6)' : 'Distinct Metrics (Sections 4E & 6)'}
+            </div>
+            <div style="font-size:12.5px; line-height:1.55; color:#475569;">
+              ${isEl ? 'Αποτροπή παραπλανητικής συγχώνευσης μοναδικών ατόμων (reach) με απλές εμφανίσεις (impressions) ή προβολές βίντεο, σύμφωνα με τους κανόνες υποβολής του Erasmus+.' : 'Strict separation of unique reached accounts from gross views and impressions prevents distortion of actual impact, meeting EU reporting standards.'}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-weight:700; font-size:13.5px; color:#1e3a8a; margin-bottom:6px;">
+              🔒 ${isEl ? 'Προστασία Δεδομένων & GDPR (Ενότητα 12)' : 'GDPR & Data Protection (Section 12)'}
+            </div>
+            <div style="font-size:12.5px; line-height:1.55; color:#475569;">
+              ${isEl ? 'Πλήρης προστασία ευαίσθητων παρουσιολογίων εκδηλώσεων και στοιχείων επαφής με αυστηρό έλεγχο πρόσβασης βάσει ρόλων (RBAC).' : 'Event attendee lists and contact details are stored securely under role-based access control, safeguarding personal data under EU GDPR regulations.'}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-weight:700; font-size:13.5px; color:#1e3a8a; margin-bottom:6px;">
+              📜 ${isEl ? 'Αμετάβλητο Ιστορικό Ελέγχου (Audit Trail)' : 'Tamper-Evident Audit Trail'}
+            </div>
+            <div style="font-size:12.5px; line-height:1.55; color:#475569;">
+              ${isEl ? 'Κάθε καταχώριση, τροποποίηση, έγκριση και ανανέωση αποδεικτικού καταγράφεται με ακριβή χρονοσήμανση και ταυτότητα χρήστη για εξωτερικούς ελέγχους.' : 'Every record creation, edit, file versioning, and managerial review is logged immutably with user ID and timestamp for seamless National Agency audits.'}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OFFICIAL FOOTER -->
+      <footer class="landing-footer">
+        <div style="max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:14px; align-items:center;">
+          <div style="display:flex; align-items:center; gap:16px; margin-bottom:4px;">
+            <img src="/uploads/inbound/image25.png" alt="TIHC Logo" style="height:38px; width:auto;">
+            <img src="/uploads/inbound/image104.jpg" alt="Co-funded by the EU" style="height:34px; width:auto; border-radius:4px;">
+          </div>
+          <p style="margin:0; font-style:italic;">${t('landingFooterDisclaimer')}</p>
+          <p style="margin:0; font-weight:600; color:#64748b;">${t('landingFooterCopyright')}</p>
+        </div>
+      </footer>
+    </div>
+  `;
+}
+
+function quickFillLandingLogin(username, password) {
+  const u = document.getElementById('landing_username');
+  const p = document.getElementById('landing_password');
+  if (u) u.value = username;
+  if (p) p.value = password;
+  showToast(`${t('currentSession')}: ${username}`);
+}
+
+async function handleLandingLoginSubmit(event) {
+  event.preventDefault();
+  const username = document.getElementById('landing_username')?.value.trim();
+  const password = document.getElementById('landing_password')?.value.trim();
+  const btn = event.submitter || document.getElementById('landing_submit_btn');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Verifying / Έλεγχος...';
+  }
+  try {
+    const res = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: { username, password }
+    });
+    if (res.token) {
+      state.authToken = res.token;
+      state.authenticatedUser = res.user;
+      localStorage.setItem('tihc_auth_token', res.token);
+      state.currentUserId = res.user.id;
+    }
+    showToast(t('signedInSuccess'));
+    await loadBootstrap();
+  } catch (err) {
+    showToast(err.message || t('invalidCredentials'));
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
   }
 }
 
@@ -1859,8 +2249,15 @@ function handleAuthButtonClick() {
     localStorage.removeItem('tihc_auth_token');
     showToast(t('loggedOutSuccess'));
     renderHeaderAndNav();
+    renderMainView();
   } else {
-    openAuthModal();
+    const landingInput = document.getElementById('landing_username');
+    if (landingInput) {
+      landingInput.focus();
+      landingInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      openAuthModal();
+    }
   }
 }
 
@@ -1877,11 +2274,11 @@ function openAuthModal() {
           <form id="loginForm" onsubmit="handleLoginSubmit(event)">
             <div style="margin-bottom:12px;">
               <label class="stat-label">${t('loginUsername')}</label>
-              <input type="text" id="login_username" class="form-control" value="manager_tihc" required>
+              <input type="text" id="login_username" class="form-control" value="tsikalas@katartisi.com" required>
             </div>
             <div style="margin-bottom:16px;">
               <label class="stat-label">${t('loginPassword')}</label>
-              <input type="password" id="login_password" class="form-control" value="ManagerTIHC2026!" required>
+              <input type="password" id="login_password" class="form-control" value="Kat123!!" required>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;">${t('loginBtn')}</button>
           </form>
@@ -1889,8 +2286,8 @@ function openAuthModal() {
           <div style="margin-top:16px; padding:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; font-size:11.5px;">
             <strong>${t('demoCredentialsTitle')}</strong>
             <ul style="margin:4px 0 0 0; padding-left:18px;">
+              <li><code>tsikalas@katartisi.com</code> / <code>Kat123!!</code> (Super Admin)</li>
               <li><code>manager_tihc</code> / <code>ManagerTIHC2026!</code> (Dissemination Leader)</li>
-              <li><code>superadmin</code> / <code>AdminTIHC2026!</code> (Super Admin)</li>
               <li><code>editor_bfe</code> / <code>Bfe2026!</code> (Bulgaria Partner Editor)</li>
               <li><code>editor_mindshift</code> / <code>Mindshift2026!</code> (Portugal Partner Editor)</li>
               <li><code>reviewer_eu</code> / <code>Reviewer2026!</code> (Auditor)</li>

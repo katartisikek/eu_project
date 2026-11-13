@@ -226,7 +226,37 @@ const i18n = {
     demoCredentialsTitle: "Pre-configured Partner Accounts:",
     signedInSuccess: "Signed in successfully!",
     invalidCredentials: "Invalid username/email or password.",
-    loggedOutSuccess: "Signed out successfully."
+    loggedOutSuccess: "Signed out successfully.",
+
+    // Landing Page
+    landingBadge: "🇪🇺 Official Erasmus+ & European Projects Dissemination Hub",
+    landingHeroTitle: "Unified Dissemination Monitoring & Evidence Verification",
+    landingHeroSubtitle: "Technical Schools of the Chamber of Heraklion (TIHC) institutional platform for multi-partner consortia. Purpose-built for Erasmus+ impact tracking, strict metric separation, and audit-ready evidence vaults.",
+    landingFeat1Title: "Strict Metric Separation (Sections 4E & 6)",
+    landingFeat1Desc: "Unique reach, impressions, views, event attendees, and newsletter subscribers are tracked independently without misleading aggregation.",
+    landingFeat2Title: "Immutable Evidence Vault",
+    landingFeat2Desc: "Versioned analytics screenshots, links, event agendas, and participant sheets permanently archived for EU audits.",
+    landingFeat3Title: "What's Pending by Partner",
+    landingFeat3Desc: "Instant status matrix identifying partners with missing files before interim or final reporting deadlines.",
+    landingFeat4Title: "One-Click Dossier Synthesis",
+    landingFeat4Desc: "Automated generation of Erasmus+ dissemination synthesis reports and filtered Excel datasets.",
+    landingLoginTitle: "Platform Access",
+    landingLoginSub: "Sign in with your institutional credentials",
+    landingSignInBtn: "Sign In to Workspace →",
+    landingQuickLogins: "Quick Fill / Preset Accounts:",
+    landingStatActivities: "Verified Activities",
+    landingStatActivitiesSub: "100% IN-BOUND Project Records",
+    landingStatCountries: "Partner Nations",
+    landingStatCountriesSub: "Greece, Bulgaria, Portugal, Finland, Turkey",
+    landingStatReach: "Audience Outreach",
+    landingStatReachSub: "Digital, physical & press engagement",
+    landingStatEvidence: "Evidence Files",
+    landingStatEvidenceSub: "Screenshots, agendas & verification links",
+    landingActiveProjects: "Active European Projects",
+    landingConsortium: "Consortium & International Partners",
+    landingComplianceTitle: "Quality & Regulatory Standards",
+    landingFooterDisclaimer: "Co-funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor EACEA can be held responsible for them.",
+    landingFooterCopyright: "© 2026 Technical Schools of the Chamber of Heraklion (TIHC) • Koronaiou 9, 71202 Heraklion, Crete, Greece. All rights reserved."
   },
 
   el: {
@@ -456,7 +486,37 @@ const i18n = {
     demoCredentialsTitle: "Προκαθορισμένοι Λογαριασμοί Εταίρων:",
     signedInSuccess: "Συνδεθήκατε επιτυχώς!",
     invalidCredentials: "Μη έγκυρο όνομα χρήστη ή κωδικός.",
-    loggedOutSuccess: "Αποσυνδεθήκατε επιτυχώς."
+    loggedOutSuccess: "Αποσυνδεθήκατε επιτυχώς.",
+
+    // Landing Page
+    landingBadge: "🇪🇺 Επίσημος Κόμβος Διάχυσης Ευρωπαϊκών Έργων & Erasmus+",
+    landingHeroTitle: "Ενιαία Πλατφόρμα Παρακολούθησης Διάχυσης & Τεκμηρίωσης Ευρωπαϊκών Έργων",
+    landingHeroSubtitle: "Επίσημο σύστημα των Τεχνικών Σχολών του Επιμελητηρίου Ηρακλείου για διεθνή εταιρικά σχήματα. Σχεδιασμένο για ακριβή μέτρηση αντικτύπου Erasmus+, διαχωρισμό μετρικών και ελεγμένα αποδεικτικά.",
+    landingFeat1Title: "Αυστηρός Διαχωρισμός Μετρικών (Ενότητες 4Ε & 6)",
+    landingFeat1Desc: "Μοναδικοί λογαριασμοί (reach), προβολές (views), συμμετέχοντες και παραλήπτες καταγράφονται αυτόνομα χωρίς εσφαλμένες προσθέσεις.",
+    landingFeat2Title: "Μητρώο Αποδεικτικών & Screenshots",
+    landingFeat2Desc: "Πλήρες ιστορικό αρχείων analytics, αναρτήσεων, παρουσιολογίων και φωτογραφιών έτοιμο για εξωτερικό έλεγχο.",
+    landingFeat3Title: "Αυτόματος Έλεγχος Εκκρεμοτήτων",
+    landingFeat3Desc: "Ζωντανός πίνακας που εντοπίζει ελλείψεις ανά εταίρο πριν τις προθεσμίες υποβολής των εκθέσεων.",
+    landingFeat4Title: "Εξαγωγή Φακέλου με 1 Κλικ",
+    landingFeat4Desc: "Αυτόματη δημιουργία συνοπτικών εκθέσεων διάχυσης και εξαγωγή πλήρων αρχείων Excel (.xlsx).",
+    landingLoginTitle: "Είσοδος στην Πλατφόρμα",
+    landingLoginSub: "Συνδεθείτε με τα διαπιστευτήρια του φορέα σας",
+    landingSignInBtn: "Είσοδος στο Χώρο Εργασίας →",
+    landingQuickLogins: "Γρήγορη Επιλογή Λογαριασμού:",
+    landingStatActivities: "Καταγεγραμμένες Δράσεις",
+    landingStatActivitiesSub: "100% Πλήρη Δεδομένα IN-BOUND",
+    landingStatCountries: "Χώρες Εταίρων",
+    landingStatCountriesSub: "Ελλάδα, Βουλγαρία, Πορτογαλία, Φινλανδία, Τουρκία",
+    landingStatReach: "Συνολική Προσέγγιση Κοινού",
+    landingStatReachSub: "Ψηφιακά κανάλια, τύπος & δια ζώσης",
+    landingStatEvidence: "Τεκμηριωμένα Αποδεικτικά",
+    landingStatEvidenceSub: "Screenshots, agendas & αποδεικτικοί σύνδεσμοι",
+    landingActiveProjects: "Ενεργά Ευρωπαϊκά Προγράμματα",
+    landingConsortium: "Εταιρικό Σχήμα & Διεθνείς Εταίροι",
+    landingComplianceTitle: "Πρότυπα Ποιότητας & Κανονιστική Συμμόρφωση",
+    landingFooterDisclaimer: "Με τη χρηματοδότηση της Ευρωπαϊκής Ένωσης. Οι απόψεις και οι γνώμες που διατυπώνονται εκφράζουν αποκλειστικά τις απόψεις των συντακτών και δεν αντιπροσωπεύουν κατ' ανάγκη τις απόψεις της Ευρωπαϊκής Ένωσης ή του Ευρωπαϊκού Εκτελεστικού Οργανισμού Εκπαίδευσης και Πολιτισμού (EACEA). Η Ευρωπαϊκή Ένωση και ο EACEA δεν μπορούν να θεωρηθούν υπεύθυνοι για αυτές.",
+    landingFooterCopyright: "© 2026 Τεχνικές Σχολές Επιμελητηρίου Ηρακλείου • Κορωναίου 9, 71202 Ηράκλειο Κρήτης. Με την επιφύλαξη παντός δικαιώματος."
   }
 };
 
