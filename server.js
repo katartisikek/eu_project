@@ -16,7 +16,7 @@ const {
   createXlsxBuffer,
   parseUploadedXlsxBuffer
 } = require('./src/zip_xlsx_utils');
-const { verifyPassword, createSession, getSession } = require('./src/auth');
+const { hashPassword, verifyPassword, createSession, getSession } = require('./src/auth');
 
 const PORT = Number(process.env.PORT) || 3080;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -408,6 +408,79 @@ async function requestHandler(req, res) {
       });
       fs.createReadStream(DB_PATH).pipe(res);
       return;
+    }
+
+    // Admin: Create New User (Section 3: RBAC User Management)
+    if (pathname === '/api/admin/users' && req.method === 'POST') {
+      const user = await getCurrentUser(reqUrl, req.headers);
+      if (user.role !== 'SUPER_ADMIN') {
+        return sendJson(res, 403, { error: 'Only Super Administrator can create new users.' });
+      }
+      const body = await readJsonBody(req);
+      const username = String(body.username || '').trim().toLowerCase();
+      const email = String(body.email || '').trim().toLowerCase();
+      const fullName = String(body.full_name || '').trim();
+      const password = String(body.password || '').trim();
+      const role = String(body.role || 'PARTNER_EDITOR').trim();
+      const partnerCode = body.partner_code ? String(body.partner_code).trim().toUpperCase() : null;
+      const projectIds = Array.isArray(body.project_ids) ? body.project_ids : ['*'];
+
+      if (!username || !email || !password || !fullName) {
+        return sendJson(res, 400, { error: 'Full name, username, email, and password are required.' });
+      }
+
+      const existing = await db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
+      if (existing) {
+        return sendJson(res, 400, { error: 'A user with this username or email already exists.' });
+      }
+
+      const hash = hashPassword(password);
+      const colors = ['#1e40af', '#047857', '#b91c1c', '#7c3aed', '#c2410c', '#0891b2'];
+      const avatarColor = colors[Math.floor(Math.random() * colors.length)];
+
+      await db.prepare(`
+        INSERT INTO users (username, password_hash, full_name, email, role, partner_code, project_ids_json, avatar_color, active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+      `).run(username, hash, fullName, email, role, partnerCode, JSON.stringify(projectIds), avatarColor);
+
+      await logAudit(null, null, user, 'USER_CREATED', 'user', username, `Super Admin created user ${fullName} (${role}, ${email}).`);
+      return sendJson(res, 201, { ok: true, message: 'User created successfully!' });
+    }
+
+    // Admin: Update User (Section 3)
+    if (pathname === '/api/admin/users' && req.method === 'PUT') {
+      const user = await getCurrentUser(reqUrl, req.headers);
+      if (user.role !== 'SUPER_ADMIN') {
+        return sendJson(res, 403, { error: 'Only Super Administrator can update users.' });
+      }
+      const body = await readJsonBody(req);
+      const targetId = Number(body.id);
+      if (!targetId) return sendJson(res, 400, { error: 'User ID is required.' });
+
+      const target = await db.prepare('SELECT * FROM users WHERE id = ?').get(targetId);
+      if (!target) return sendJson(res, 404, { error: 'User not found.' });
+
+      const fullName = body.full_name ? String(body.full_name).trim() : target.full_name;
+      const role = body.role ? String(body.role).trim() : target.role;
+      const partnerCode = body.partner_code !== undefined ? (body.partner_code ? String(body.partner_code).trim().toUpperCase() : null) : target.partner_code;
+      const active = body.active !== undefined ? Number(body.active) : target.active;
+      const projectIds = body.project_ids ? JSON.stringify(body.project_ids) : target.project_ids_json;
+
+      if (body.password && String(body.password).trim().length > 0) {
+        const newHash = hashPassword(String(body.password).trim());
+        await db.prepare(`
+          UPDATE users SET full_name = ?, role = ?, partner_code = ?, project_ids_json = ?, active = ?, password_hash = ?
+          WHERE id = ?
+        `).run(fullName, role, partnerCode, projectIds, active, newHash, targetId);
+      } else {
+        await db.prepare(`
+          UPDATE users SET full_name = ?, role = ?, partner_code = ?, project_ids_json = ?, active = ?
+          WHERE id = ?
+        `).run(fullName, role, partnerCode, projectIds, active, targetId);
+      }
+
+      await logAudit(null, null, user, 'USER_UPDATED', 'user', target.username, `Updated user ${target.username} (${role}).`);
+      return sendJson(res, 200, { ok: true, message: 'User updated successfully!' });
     }
 
     // 1. Serve Uploaded Evidence Files

@@ -1694,11 +1694,12 @@ function renderAdminView() {
     <div class="dashboard-charts-grid">
       <!-- Users & RBAC Matrix -->
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div>
             <h3 class="card-title">${t('usersCardTitle')}</h3>
             <p class="card-subtitle">${t('usersCardDesc')}</p>
           </div>
+          <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">➕ ${state.currentLang === 'el' ? 'Προσθήκη Χρήστη' : 'Add User'}</button>
         </div>
         <div class="table-responsive">
           <table class="data-table">
@@ -2453,6 +2454,96 @@ async function saveNewKpi() {
     loadBootstrap();
   } catch (err) {
     showToast(err.message);
+  }
+}
+
+function openCreateUserModal() {
+  const modalRoot = document.getElementById('modalRoot');
+  const partners = state.bootstrap?.partners || [];
+  const isEl = state.currentLang === 'el';
+
+  modalRoot.innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+      <div class="modal-window" style="max-width:540px;">
+        <div class="modal-header">
+          <h3 style="margin:0; font-size:16px;">👥 ${isEl ? 'Προσθήκη Νέου Χρήστη & Ρόλου' : 'Add New User & Assign Role'}</h3>
+          <button class="btn btn-sm btn-outline" onclick="closeModal()">✕</button>
+        </div>
+        <form onsubmit="handleCreateUserSubmit(event)" style="display:flex; flex-direction:column; gap:12px; margin-top:14px;">
+          <div class="form-group">
+            <label class="form-label">${isEl ? 'Ονοματεπώνυμο *' : 'Full Name *'}</label>
+            <input type="text" id="newFullName" class="form-control" required placeholder="${isEl ? 'π.χ. Ιωάννης Τσικαλάς' : 'e.g. John Doe'}">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label">${isEl ? 'Όνομα Χρήστη (Username) *' : 'Username *'}</label>
+              <input type="text" id="newUsername" class="form-control" required placeholder="e.g. tsikalas">
+            </div>
+            <div class="form-group">
+              <label class="form-label">${isEl ? 'Email *' : 'Email *'}</label>
+              <input type="email" id="newEmail" class="form-control" required placeholder="user@domain.com">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">${isEl ? 'Κωδικός Πρόσβασης (Password) *' : 'Password *'}</label>
+            <input type="password" id="newPassword" class="form-control" required placeholder="••••••••">
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label class="form-label">${isEl ? 'Ρόλος Πλατφόρμας *' : 'Platform Role *'}</label>
+              <select id="newRole" class="form-control" required>
+                <option value="SUPER_ADMIN">${isEl ? 'A. Super Administrator (Πλήρη δικαιώματα)' : 'A. Super Administrator (Full Control)'}</option>
+                <option value="DISSEMINATION_MANAGER">${isEl ? 'B. Dissemination Manager (TIHC)' : 'B. Dissemination Manager (TIHC)'}</option>
+                <option value="PARTNER_EDITOR" selected>${isEl ? 'C. Partner Editor (Εταίρος)' : 'C. Partner Editor (Organisation)'}</option>
+                <option value="REVIEWER">${isEl ? 'D. Reviewer / Evaluator (Έλεγχος)' : 'D. Reviewer / Evaluator (Auditor)'}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">${isEl ? 'Οργανισμός / Εταίρος' : 'Partner Scope'}</label>
+              <select id="newPartnerCode" class="form-control">
+                <option value="">${isEl ? 'Όλοι οι Εταίροι (Super Admin / Reviewer)' : 'All / Consortium'}</option>
+                ${partners.map(p => `<option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} — ${escapeHtml(p.name)}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal()">${isEl ? 'Ακύρωση' : 'Cancel'}</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveUser">💾 ${isEl ? 'Δημιουργία Χρήστη' : 'Create User'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+async function handleCreateUserSubmit(event) {
+  event.preventDefault();
+  const btn = document.getElementById('btnSaveUser');
+  if (btn) btn.disabled = true;
+
+  try {
+    const payload = {
+      full_name: document.getElementById('newFullName').value.trim(),
+      username: document.getElementById('newUsername').value.trim(),
+      email: document.getElementById('newEmail').value.trim(),
+      password: document.getElementById('newPassword').value,
+      role: document.getElementById('newRole').value,
+      partner_code: document.getElementById('newPartnerCode').value || null,
+      project_ids: ['*']
+    };
+
+    const res = await apiFetch('/api/admin/users', {
+      method: 'POST',
+      body: payload
+    });
+
+    closeModal();
+    showToast(res.message || 'User created successfully!');
+    await loadBootstrap();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
