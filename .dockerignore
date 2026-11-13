@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+npm-debug.log
+.DS_Store
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+.system_generated
+scratch
+tests
+

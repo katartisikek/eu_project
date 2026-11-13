@@ -1,0 +1,16 @@
+{
+  "name": "tihc-dissemination-monitoring-platform",
+  "version": "1.0.0",
+  "description": "Διαδικτυακή Πλατφόρμα Dissemination Monitoring & Reporting — Τεχνικές Σχολές Επιμελητηρίου Ηρακλείου (TIHC)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "pg": "^8.23.1"
+  }
+}

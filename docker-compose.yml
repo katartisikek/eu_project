@@ -1,0 +1,53 @@
+# ==============================================================================
+# Docker Compose for TIHC Dissemination Monitoring & Reporting Platform
+# Technical Schools of the Chamber of Heraklion (TIHC)
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tihc-dissemination-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3080}:3080"
+    environment:
+      - PORT=3080
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+    volumes:
+      # Persistent SQLite database storage
+      - ./data:/app/data
+      # Persistent evidence files & screenshot uploads
+      - ./uploads:/app/uploads
+      # Generated export packages
+      - ./exports:/app/exports
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Optional Automated HTTPS Reverse Proxy (uncomment when deploying with custom domain)
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: tihc-dissemination-caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   depends_on:
+  #     - app
+
+# volumes:
+#   caddy_data:
+#   caddy_config:
+

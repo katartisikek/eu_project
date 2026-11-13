@@ -1,0 +1,28 @@
+# Caddyfile for automated HTTPS with Let's Encrypt
+# Replace {$DOMAIN} with your actual subdomain (e.g. dissemination.katartisi.gr)
+
+{$DOMAIN:localhost} {
+    # Reverse proxy to the Node.js application container
+    reverse_proxy app:3080 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Upload size limit (up to 50MB for evidence packages and screenshots)
+    request_body {
+        max_size 50MB
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Enable gzip / zstd compression
+    encode zstd gzip
+}
+
