@@ -23,20 +23,22 @@ if (isPostgres) {
   });
   console.log('[DB] Connected to Supabase PostgreSQL Cloud Database.');
 } else {
-  const { DatabaseSync } = require('node:sqlite');
-  const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
-  const DB_PATH = path.join(DATA_DIR, 'dissemination_platform.sqlite');
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  sqliteDb = new DatabaseSync(DB_PATH);
   try {
-    sqliteDb.exec('PRAGMA journal_mode = WAL;');
-    sqliteDb.exec('PRAGMA foreign_keys = ON;');
-  } catch (e) {
-    // Read-only filesystem warning
+    const { DatabaseSync } = require('node:sqlite');
+    const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+    const DB_PATH = path.join(DATA_DIR, 'dissemination_platform.sqlite');
+    if (!fs.existsSync(DATA_DIR)) {
+      try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {}
+    }
+    sqliteDb = new DatabaseSync(DB_PATH);
+    try {
+      sqliteDb.exec('PRAGMA journal_mode = WAL;');
+      sqliteDb.exec('PRAGMA foreign_keys = ON;');
+    } catch (e) {}
+    console.log('[DB] Connected to Local SQLite Database:', DB_PATH);
+  } catch (err) {
+    console.warn('[DB] SQLite is not available in this runtime environment (DATABASE_URL required for cloud).');
   }
-  console.log('[DB] Connected to Local SQLite Database:', DB_PATH);
 }
 
 // Convert SQLite '?' placeholders to PostgreSQL '$1, $2, ...'
@@ -75,13 +77,20 @@ const db = {
           };
         }
       };
-    } else {
+    } else if (sqliteDb) {
       const stmt = sqliteDb.prepare(sql);
       return {
         all: (...params) => stmt.all(...params),
         get: (...params) => stmt.get(...params),
         run: (...params) => stmt.run(...params)
       };
+    } else {
+      return {
+        all: async () => [],
+        get: async () => null,
+        run: async () => ({ changes: 0, lastInsertRowid: 0 })
+      };
+    }
     }
   },
 
