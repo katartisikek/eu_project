@@ -119,6 +119,10 @@ async function getCurrentUser(reqUrl, reqHeaders) {
   if (!user) {
     user = await db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users ORDER BY id ASC LIMIT 1').get();
   }
+  if (user && user.username === 'tsikalas' && user.full_name && (user.full_name.includes('Ioannis') || user.full_name.includes('Ιωάννης'))) {
+    user.full_name = 'Konstantinos Tsikalas (Super Administrator)';
+    try { await db.prepare('UPDATE users SET full_name = ? WHERE id = ?').run(user.full_name, user.id); } catch (e) {}
+  }
   if (!user) {
     return {
       id: 2,
@@ -199,10 +203,17 @@ async function computeKpiProgress(projectId) {
 
 async function buildBootstrapData(projectId, user) {
   const allUsersRaw = await db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users ORDER BY id ASC').all();
-  const allUsers = (allUsersRaw || []).map(u => ({
-    ...u,
-    project_ids: JSON.parse(u.project_ids_json || '["*"]')
-  }));
+  const allUsers = (allUsersRaw || []).map(u => {
+    let fullName = u.full_name;
+    if (u.username === 'tsikalas' && fullName && (fullName.includes('Ioannis') || fullName.includes('Ιωάννης'))) {
+      fullName = 'Konstantinos Tsikalas (Super Administrator)';
+    }
+    return {
+      ...u,
+      full_name: fullName,
+      project_ids: JSON.parse(u.project_ids_json || '["*"]')
+    };
+  });
 
   const allProjectsRaw = await db.prepare('SELECT * FROM projects ORDER BY id ASC').all();
   const allProjects = (allProjectsRaw || [])
@@ -391,6 +402,10 @@ async function requestHandler(req, res) {
       const isPassValid = found && (found.password_hash ? verifyPassword(pass, found.password_hash) : (found.password === pass));
       if (!found || !isPassValid) {
         return sendJson(res, 401, { error: 'Invalid username/email or password.' });
+      }
+      if (found.username === 'tsikalas' && found.full_name && (found.full_name.includes('Ioannis') || found.full_name.includes('Ιωάννης'))) {
+        found.full_name = 'Konstantinos Tsikalas (Super Administrator)';
+        try { await db.prepare('UPDATE users SET full_name = ? WHERE id = ?').run(found.full_name, found.id); } catch (e) {}
       }
       const token = createSession(found);
       logAudit(null, null, found, 'USER_LOGIN', 'user', found.username, `User ${found.full_name} (${found.role}) signed in.`);
