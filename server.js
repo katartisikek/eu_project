@@ -52,7 +52,10 @@ const MIME_TYPES = {
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'SAMEORIGIN',
-  'Referrer-Policy': 'strict-origin-when-cross-origin'
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, x-user-id, x-auth-token, Authorization'
 };
 
 function sendJson(res, statusCode, payload) {
@@ -359,8 +362,20 @@ function validateAndComputeFlags(actData, existingEvidenceCount = 0) {
 
 async function requestHandler(req, res) {
   try {
-    const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const pathname = decodeURIComponent(reqUrl.pathname);
+    // Handle CORS Preflight OPTIONS
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, SECURITY_HEADERS);
+      return res.end();
+    }
+
+    const rawUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const rawPath = rawUrl.searchParams.get('__path') ||
+                    req.headers['x-matched-path'] ||
+                    req.headers['x-forwarded-uri'] ||
+                    req.headers['x-vercel-matched-path'] ||
+                    rawUrl.pathname;
+    const pathname = decodeURIComponent(rawPath.split('?')[0]);
+    const reqUrl = new URL(rawPath + (rawUrl.search || ''), `http://${req.headers.host || 'localhost'}`);
 
     // Health Check for Cloud / Docker Deployment
     if (pathname === '/api/health' && req.method === 'GET') {
