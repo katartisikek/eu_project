@@ -506,6 +506,9 @@ function renderPublicLandingPage() {
                   <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('tsikalas@katartisi.com', 'Kat123!!')">
                     👑 Super Admin (tsikalas)
                   </button>
+                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('koundouraki@katartisi.gr', 'Kat123!!')">
+                    👑 Super Admin (koundouraki)
+                  </button>
                   <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('manager_tihc', 'ManagerTIHC2026!')">
                     🇬🇷 Dissemination Leader
                   </button>
@@ -2287,6 +2290,7 @@ function openAuthModal() {
             <strong>${t('demoCredentialsTitle')}</strong>
             <ul style="margin:4px 0 0 0; padding-left:18px;">
               <li><code>tsikalas@katartisi.com</code> / <code>Kat123!!</code> (Super Admin)</li>
+              <li><code>koundouraki@katartisi.gr</code> / <code>Kat123!!</code> (Super Admin)</li>
               <li><code>manager_tihc</code> / <code>ManagerTIHC2026!</code> (Dissemination Leader)</li>
               <li><code>editor_bfe</code> / <code>Bfe2026!</code> (Bulgaria Partner Editor)</li>
               <li><code>editor_mindshift</code> / <code>Mindshift2026!</code> (Portugal Partner Editor)</li>
