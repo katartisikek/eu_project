@@ -17,9 +17,21 @@ let sqliteDb = null;
 let pgPool = null;
 
 if (isPostgres) {
+  // Supabase uses connection poolers where Node.js TLS requires accepting self-signed chain certs
+  try {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  } catch (e) {}
+
+  let sanitizedUrl = DATABASE_URL;
+  if (sanitizedUrl.includes('sslmode=require')) {
+    sanitizedUrl = sanitizedUrl.replace('sslmode=require', 'sslmode=no-verify');
+  } else if (!sanitizedUrl.includes('sslmode=')) {
+    sanitizedUrl += (sanitizedUrl.includes('?') ? '&' : '?') + 'sslmode=no-verify';
+  }
+
   const { Pool } = require('pg');
   pgPool = new Pool({
-    connectionString: DATABASE_URL,
+    connectionString: sanitizedUrl,
     ssl: { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30000,
