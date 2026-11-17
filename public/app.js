@@ -482,14 +482,14 @@ function renderPublicLandingPage() {
                   <label class="stat-label" style="font-weight:700; color:#334155; margin-bottom:6px; display:block;">
                     ${t('loginUsername')}
                   </label>
-                  <input type="text" id="landing_username" class="form-control" value="tsikalas@katartisi.com" required style="padding:10px 12px; font-size:13.5px; border-radius:8px;">
+                  <input type="text" id="landing_username" class="form-control" placeholder="name@organisation.eu" required style="padding:10px 12px; font-size:13.5px; border-radius:8px;">
                 </div>
 
                 <div style="margin-bottom:18px;">
                   <label class="stat-label" style="font-weight:700; color:#334155; margin-bottom:6px; display:block;">
                     ${t('loginPassword')}
                   </label>
-                  <input type="password" id="landing_password" class="form-control" value="Kat123!!" required style="padding:10px 12px; font-size:13.5px; border-radius:8px;">
+                  <input type="password" id="landing_password" class="form-control" placeholder="••••••••" required style="padding:10px 12px; font-size:13.5px; border-radius:8px;">
                 </div>
 
                 <button type="submit" id="landing_submit_btn" class="btn btn-primary" style="width:100%; padding:11px 16px; font-size:14px; font-weight:700; justify-content:center; box-shadow:0 4px 12px rgba(30, 58, 138, 0.25);">
@@ -502,33 +502,6 @@ function renderPublicLandingPage() {
                   </button>
                 </div>
               </form>
-
-              <!-- Quick Presets -->
-              <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
-                <div style="font-size:11.5px; font-weight:700; color:#64748b; margin-bottom:8px;">
-                  ${t('landingQuickLogins')}
-                </div>
-                <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('tsikalas@katartisi.com', 'Kat123!!')">
-                    👑 Super Admin (tsikalas)
-                  </button>
-                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('koundouraki@katartisi.gr', 'Kat123!!')">
-                    👑 Super Admin (koundouraki)
-                  </button>
-                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('manager_tihc', 'ManagerTIHC2026!')">
-                    🇬🇷 Dissemination Leader
-                  </button>
-                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('editor_bfe', 'Bfe2026!')">
-                    🇧🇬 Bulgaria (BFE)
-                  </button>
-                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('editor_mindshift', 'Mindshift2026!')">
-                    🇵🇹 Portugal (Mindshift)
-                  </button>
-                  <button type="button" class="btn btn-sm" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer;" onclick="quickFillLandingLogin('reviewer_eu', 'Reviewer2026!')">
-                    🇪🇺 Auditor (EU)
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -2172,7 +2145,7 @@ function renderAdminView() {
                 <th>Role</th>
                 <th>Partner Scope</th>
                 <th>${isEl ? 'Κατάσταση' : 'Status'}</th>
-                <th>Switch Demo User</th>
+                <th>${isEl ? 'Ενεργή Σύνδεση' : 'Session'}</th>
               </tr>
             </thead>
             <tbody>
@@ -2361,11 +2334,11 @@ function openAuthModal() {
           <form id="loginForm" onsubmit="handleLoginSubmit(event)">
             <div style="margin-bottom:12px;">
               <label class="stat-label">${t('loginUsername')}</label>
-              <input type="text" id="login_username" class="form-control" value="tsikalas@katartisi.com" required>
+              <input type="text" id="login_username" class="form-control" placeholder="name@organisation.eu" required>
             </div>
             <div style="margin-bottom:16px;">
               <label class="stat-label">${t('loginPassword')}</label>
-              <input type="password" id="login_password" class="form-control" value="Kat123!!" required>
+              <input type="password" id="login_password" class="form-control" placeholder="••••••••" required>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%;">${t('loginBtn')}</button>
           </form>
@@ -2374,18 +2347,6 @@ function openAuthModal() {
             <button type="button" class="btn btn-outline btn-sm" style="width:100%; font-size:12px; color:#0369a1; border-color:#0284c7; background:#f0f9ff; padding:7px 10px;" onclick="closeModal(); openRegistrationModal();">
               ${t('requestAccountBtn')}
             </button>
-          </div>
-
-          <div style="margin-top:16px; padding:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; font-size:11.5px;">
-            <strong>${t('demoCredentialsTitle')}</strong>
-            <ul style="margin:4px 0 0 0; padding-left:18px;">
-              <li><code>tsikalas@katartisi.com</code> / <code>Kat123!!</code> (Super Admin)</li>
-              <li><code>koundouraki@katartisi.gr</code> / <code>Kat123!!</code> (Super Admin)</li>
-              <li><code>manager_tihc</code> / <code>ManagerTIHC2026!</code> (Dissemination Leader)</li>
-              <li><code>editor_bfe</code> / <code>Bfe2026!</code> (Bulgaria Partner Editor)</li>
-              <li><code>editor_mindshift</code> / <code>Mindshift2026!</code> (Portugal Partner Editor)</li>
-              <li><code>reviewer_eu</code> / <code>Reviewer2026!</code> (Auditor)</li>
-            </ul>
           </div>
         </div>
       </div>
