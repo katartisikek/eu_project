@@ -118,9 +118,42 @@ const db = {
   }
 };
 
+async function ensureSchema() {
+  try {
+    if (isPostgres && pgPool) {
+      await pgPool.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS job_title TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'APPROVED';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS gdpr_consent INTEGER DEFAULT 1;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS activation_token TEXT;
+      `);
+    } else if (sqliteDb) {
+      const cols = sqliteDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+      const add = (col, type) => {
+        if (!cols.includes(col)) {
+          try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN ${col} ${type}`); } catch (e) {}
+        }
+      };
+      add('first_name', 'TEXT');
+      add('last_name', 'TEXT');
+      add('job_title', 'TEXT');
+      add('status', "TEXT DEFAULT 'APPROVED'");
+      add('gdpr_consent', 'INTEGER DEFAULT 1');
+      add('activation_token', 'TEXT');
+    }
+  } catch (err) {
+    console.warn('[DB] Schema ensure notice:', err.message);
+  }
+}
+
+ensureSchema();
+
 module.exports = {
   db,
   isPostgres,
-  toPgSql
+  toPgSql,
+  ensureSchema
 };
 

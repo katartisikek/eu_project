@@ -65,15 +65,28 @@ CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
   full_name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
+  job_title TEXT,
   role TEXT NOT NULL,
   partner_code TEXT,
   project_ids_json TEXT DEFAULT '[1]',
   avatar_color TEXT DEFAULT '#1e40af',
+  status TEXT DEFAULT 'APPROVED',
+  gdpr_consent INTEGER DEFAULT 1,
+  activation_token TEXT,
   active INTEGER DEFAULT 1,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS job_title TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'APPROVED';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gdpr_consent INTEGER DEFAULT 1;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS activation_token TEXT;
 
 -- 5. KPIs Table
 CREATE TABLE IF NOT EXISTS kpis (

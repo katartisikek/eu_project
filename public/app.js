@@ -495,6 +495,12 @@ function renderPublicLandingPage() {
                 <button type="submit" id="landing_submit_btn" class="btn btn-primary" style="width:100%; padding:11px 16px; font-size:14px; font-weight:700; justify-content:center; box-shadow:0 4px 12px rgba(30, 58, 138, 0.25);">
                   ${t('landingSignInBtn')}
                 </button>
+
+                <div style="margin-top:10px; text-align:center;">
+                  <button type="button" class="btn btn-outline" style="width:100%; padding:9px 14px; font-size:13px; font-weight:600; justify-content:center; border-color:#0284c7; color:#0369a1; background:#f0f9ff;" onclick="openRegistrationModal()">
+                    ${t('requestAccountBtn')}
+                  </button>
+                </div>
               </form>
 
               <!-- Quick Presets -->
@@ -2069,7 +2075,8 @@ function handleImportExcelUpload(event) {
    8. ADMIN, ROLES, NOTIFICATIONS & AUDIT TRAIL VIEW (Sections 2, 3, 10, 12, 13)
    ============================================================================ */
 function renderAdminView() {
-  const { activeProject, users, notifications, auditLogs } = state.bootstrap;
+  const { activeProject, users, notifications, auditLogs, pendingUsers = [] } = state.bootstrap;
+  const isEl = state.currentLang === 'el';
 
   return `
     <div class="card" style="margin-bottom:18px; border-left:4px solid #10b981;">
@@ -2082,6 +2089,69 @@ function renderAdminView() {
         </div>
         <a href="/api/admin/backup-sqlite" class="btn btn-success" download>${t('backupDbBtn')}</a>
       </div>
+    </div>
+
+    <!-- Pending Partner Registrations Approval Queue -->
+    <div class="card" style="margin-bottom:18px; border-left:4px solid #f59e0b;">
+      <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h3 class="card-title" style="margin:0;">${t('pendingRegistrationsTitle')}</h3>
+            <span class="badge" style="background:${pendingUsers.length > 0 ? '#fef3c7' : '#f1f5f9'}; color:${pendingUsers.length > 0 ? '#b45309' : '#64748b'}; font-weight:700; padding:3px 8px; border-radius:12px; font-size:12px;">
+              ${pendingUsers.length} ${isEl ? 'αιτήματα' : 'pending'}
+            </span>
+          </div>
+          <p class="card-subtitle" style="margin-top:4px;">${t('pendingRegistrationsSub')}</p>
+        </div>
+      </div>
+      ${pendingUsers.length === 0 ? `
+        <div style="padding:16px; color:#64748b; font-size:13px; text-align:center; background:#f8fafc; border-radius:8px;">
+          ✓ ${t('noPendingRegistrations')}
+        </div>
+      ` : `
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>${isEl ? 'Ονοματεπώνυμο & Ιδιότητα' : 'Applicant & Position'}</th>
+                <th>${isEl ? 'Email & Username' : 'Email / Username'}</th>
+                <th>${isEl ? 'Εταίρος (Scope)' : 'Partner Scope'}</th>
+                <th>${isEl ? 'Ημερομηνία' : 'Date'}</th>
+                <th style="text-align:right;">${isEl ? 'Ενέργειες Έγκρισης' : 'Approval Actions'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pendingUsers.map(u => `
+                <tr style="background:#fffbeb;">
+                  <td>
+                    <strong>${escapeHtml(u.full_name)}</strong>
+                    ${u.job_title ? `<br><small style="color:#64748b;">💼 ${escapeHtml(u.job_title)}</small>` : ''}
+                  </td>
+                  <td>
+                    <code>${escapeHtml(u.email)}</code>
+                  </td>
+                  <td>
+                    <span class="proj-badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;">${escapeHtml(u.partner_code || 'Consortium')}</span>
+                  </td>
+                  <td style="font-size:12px; color:#64748b;">
+                    ${u.created_at ? escapeHtml(String(u.created_at).slice(0, 16)) : '-'}
+                  </td>
+                  <td style="text-align:right;">
+                    <div style="display:inline-flex; gap:6px;">
+                      <button class="btn btn-sm btn-success" style="font-weight:700; padding:4px 10px;" onclick="handleApproveUser(${u.id}, '${escapeHtml(u.full_name.replace(/'/g, "\\'"))}')">
+                        ✓ ${t('approveBtn')}
+                      </button>
+                      <button class="btn btn-sm btn-outline" style="color:#b91c1c; border-color:#fca5a5; padding:4px 8px;" onclick="handleRejectUser(${u.id}, '${escapeHtml(u.full_name.replace(/'/g, "\\'"))}')">
+                        ✕ ${t('rejectBtn')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
     </div>
 
     <div class="dashboard-charts-grid">
@@ -2101,15 +2171,29 @@ function renderAdminView() {
                 <th>Username & Name</th>
                 <th>Role</th>
                 <th>Partner Scope</th>
+                <th>${isEl ? 'Κατάσταση' : 'Status'}</th>
                 <th>Switch Demo User</th>
               </tr>
             </thead>
             <tbody>
               ${users.map(u => `
                 <tr>
-                  <td><strong>${escapeHtml(u.full_name)}</strong><br><small style="color:var(--text-light);">${escapeHtml(u.email)} (@${escapeHtml(u.username)})</small></td>
+                  <td>
+                    <strong>${escapeHtml(u.full_name)}</strong>
+                    ${u.job_title ? `<br><small style="color:var(--text-muted);">💼 ${escapeHtml(u.job_title)}</small>` : ''}
+                    <br><small style="color:var(--text-light);">${escapeHtml(u.email)} (@${escapeHtml(u.username)})</small>
+                  </td>
                   <td><span class="proj-badge">${escapeHtml(u.role)}</span></td>
                   <td>${escapeHtml(u.partner_code || 'All / Consortium')}</td>
+                  <td>
+                    ${u.status === 'PENDING'
+                      ? `<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700; padding:2px 6px; border-radius:4px;">⏳ ${t('statusPending')}</span>`
+                      : (u.status === 'REJECTED'
+                        ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700; padding:2px 6px; border-radius:4px;">✕ ${t('statusRejected')}</span>`
+                        : `<span class="badge" style="background:#dcfce7; color:#15803d; font-weight:700; padding:2px 6px; border-radius:4px;">✓ ${t('statusApproved')}</span>`
+                      )
+                    }
+                  </td>
                   <td>
                     <button class="btn btn-sm ${u.id === state.currentUserId ? 'btn-success' : 'btn-outline'}" onclick="state.currentUserId=${u.id}; loadBootstrap();">
                       ${u.id === state.currentUserId ? '✓ Active' : 'Switch'}
@@ -2286,6 +2370,12 @@ function openAuthModal() {
             <button type="submit" class="btn btn-primary" style="width:100%;">${t('loginBtn')}</button>
           </form>
 
+          <div style="margin-top:10px; text-align:center;">
+            <button type="button" class="btn btn-outline btn-sm" style="width:100%; font-size:12px; color:#0369a1; border-color:#0284c7; background:#f0f9ff; padding:7px 10px;" onclick="closeModal(); openRegistrationModal();">
+              ${t('requestAccountBtn')}
+            </button>
+          </div>
+
           <div style="margin-top:16px; padding:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; font-size:11.5px;">
             <strong>${t('demoCredentialsTitle')}</strong>
             <ul style="margin:4px 0 0 0; padding-left:18px;">
@@ -2322,7 +2412,7 @@ async function handleLoginSubmit(event) {
     showToast(t('signedInSuccess'));
     loadBootstrap();
   } catch (err) {
-    showToast(t('invalidCredentials'));
+    showToast(err.message || t('invalidCredentials'));
   }
 }
 
@@ -2945,6 +3035,286 @@ async function handleCreateUserSubmit(event) {
     showToast(err.message);
   } finally {
     if (btn) btn.disabled = false;
+  }
+}
+
+/* ============================================================================
+   CONSORTIUM PARTNER ONBOARDING & REGISTRATION MODAL (Section 3 & GDPR 12)
+   ============================================================================ */
+async function openRegistrationModal() {
+  const modalRoot = document.getElementById('modalRoot');
+  const isEl = state.currentLang === 'el';
+
+  modalRoot.innerHTML = `
+    <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+      <div class="modal-window" style="max-width:580px; max-height:90vh; overflow-y:auto;">
+        <div class="modal-header" style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:17px; font-weight:800; color:#0f172a;">
+              📝 ${t('registrationModalTitle')}
+            </h3>
+            <div style="font-size:12px; color:#64748b; margin-top:3px;">
+              ${t('registrationModalSub')}
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+          <div id="regModalLoading" style="text-align:center; padding:30px; color:#64748b;">
+            ⏳ ${isEl ? 'Φόρτωση έργων και εταίρων κοινοπραξίας...' : 'Loading consortium projects & partner options...'}
+          </div>
+          <form id="partnerRegistrationForm" onsubmit="handleRegistrationSubmit(event)" style="display:none; flex-direction:column; gap:14px;">
+            <!-- Personal Details -->
+            <div style="font-size:12px; font-weight:800; text-transform:uppercase; color:#0369a1; letter-spacing:0.5px; border-bottom:1px solid #e0f2fe; padding-bottom:4px;">
+              ${isEl ? '1. Προσωπικά Στοιχεία & Ταυτοποίηση' : '1. Personal Details & Identity'}
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">${t('regFirstName')}</label>
+                <input type="text" id="reg_first_name" class="form-control" required placeholder="${isEl ? 'π.χ. Μαρία' : 'e.g. Maria'}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('regLastName')}</label>
+                <input type="text" id="reg_last_name" class="form-control" required placeholder="${isEl ? 'π.χ. Παπαδοπούλου' : 'e.g. Papadopoulou'}">
+              </div>
+            </div>
+
+            <!-- Credentials -->
+            <div class="form-group">
+              <label class="form-label">${t('regWorkEmail')}</label>
+              <input type="email" id="reg_email" class="form-control" required placeholder="name@organisation.eu">
+              <small style="font-size:11px; color:#64748b; margin-top:2px; display:block;">
+                ${isEl ? 'Χρησιμοποιείται ως Username και για τις επίσημες ειδοποιήσεις υποβολών/ελέγχων.' : 'Acts as unique username and for official automated reporting notifications.'}
+              </small>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="form-group">
+                <label class="form-label">${t('regPassword')}</label>
+                <input type="password" id="reg_password" class="form-control" required minlength="8" placeholder="••••••••">
+              </div>
+              <div class="form-group">
+                <label class="form-label">${t('regConfirmPassword')}</label>
+                <input type="password" id="reg_confirm_password" class="form-control" required minlength="8" placeholder="••••••••">
+              </div>
+            </div>
+
+            <!-- Project & Partner Association -->
+            <div style="font-size:12px; font-weight:800; text-transform:uppercase; color:#0369a1; letter-spacing:0.5px; border-bottom:1px solid #e0f2fe; padding-bottom:4px; margin-top:4px;">
+              ${isEl ? '2. Στοιχεία Αντιστοίχισης Έργου & Εταίρου' : '2. Project & Partner Association'}
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">${t('regProject')}</label>
+              <select id="reg_project_id" class="form-control" required onchange="handleRegProjectChange(this.value)">
+                <option value="">${t('regSelectProject')}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">${t('regPartner')}</label>
+              <select id="reg_partner_code" class="form-control" required disabled>
+                <option value="">${isEl ? '← Επιλέξτε πρώτα έργο' : '← Select project first'}</option>
+              </select>
+              <small style="font-size:11px; color:#64748b; margin-top:2px; display:block;">
+                ${isEl ? '🔒 Απαγορεύεται το ελεύθερο κείμενο. Τροφοδοτεί αυτόματα την Ενότητα Α.2 και τα φίλτρα.' : '🔒 Strict selection only. Feeds Section A.2 and reporting filters.'}
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">${t('regJobTitle')}</label>
+              <input type="text" id="reg_job_title" class="form-control" placeholder="${t('regJobTitlePlaceholder')}">
+            </div>
+
+            <!-- Legal Compliance (GDPR) -->
+            <div style="margin-top:6px; padding:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;">
+              <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:12px; line-height:1.45; color:#1e3a8a;">
+                <input type="checkbox" id="reg_gdpr_consent" required style="margin-top:2px;">
+                <span>${t('regGdprConsent')}</span>
+              </label>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+              <button type="button" class="btn btn-outline" onclick="closeModal()">${t('cancelBtn')}</button>
+              <button type="submit" id="regSubmitBtn" class="btn btn-primary" style="padding:10px 20px; font-weight:700;">
+                🚀 ${t('regSubmitBtn')}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const res = await apiFetch('/api/public/registration-options');
+    window.__registrationProjects = res.projects || [];
+    const projSelect = document.getElementById('reg_project_id');
+    const loadingEl = document.getElementById('regModalLoading');
+    const formEl = document.getElementById('partnerRegistrationForm');
+
+    if (projSelect && window.__registrationProjects.length > 0) {
+      projSelect.innerHTML = `<option value="">${t('regSelectProject')}</option>` +
+        window.__registrationProjects.map(p => `
+          <option value="${p.id}">${escapeHtml(p.acronym)} — ${escapeHtml(p.title)} (${escapeHtml(p.project_number)})</option>
+        `).join('');
+
+      if (window.__registrationProjects[0]) {
+        projSelect.value = String(window.__registrationProjects[0].id);
+        handleRegProjectChange(window.__registrationProjects[0].id);
+      }
+    }
+
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (formEl) formEl.style.display = 'flex';
+  } catch (err) {
+    const loadingEl = document.getElementById('regModalLoading');
+    if (loadingEl) {
+      loadingEl.innerHTML = `<div style="color:#b91c1c;">⚠️ Error loading options: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+}
+
+function handleRegProjectChange(projectId) {
+  const partnerSelect = document.getElementById('reg_partner_code');
+  if (!partnerSelect) return;
+
+  const isEl = state.currentLang === 'el';
+  const projects = window.__registrationProjects || [];
+  const selectedProj = projects.find(p => String(p.id) === String(projectId));
+
+  if (!selectedProj || !selectedProj.partners || selectedProj.partners.length === 0) {
+    partnerSelect.disabled = true;
+    partnerSelect.innerHTML = `<option value="">${isEl ? 'Δεν βρέθηκαν εταίροι' : 'No partners found'}</option>`;
+    return;
+  }
+
+  partnerSelect.disabled = false;
+  partnerSelect.innerHTML = `<option value="">${t('regSelectPartner')}</option>` +
+    selectedProj.partners.map(p => `
+      <option value="${escapeHtml(p.code)}">${escapeHtml(p.code)} — ${escapeHtml(p.full_name || p.name)} (${escapeHtml(p.country)})</option>
+    `).join('');
+}
+
+async function handleRegistrationSubmit(event) {
+  event.preventDefault();
+  const isEl = state.currentLang === 'el';
+  const firstName = document.getElementById('reg_first_name')?.value.trim();
+  const lastName = document.getElementById('reg_last_name')?.value.trim();
+  const email = document.getElementById('reg_email')?.value.trim();
+  const password = document.getElementById('reg_password')?.value;
+  const confirmPassword = document.getElementById('reg_confirm_password')?.value;
+  const projectId = document.getElementById('reg_project_id')?.value;
+  const partnerCode = document.getElementById('reg_partner_code')?.value;
+  const jobTitle = document.getElementById('reg_job_title')?.value.trim();
+  const gdprConsent = document.getElementById('reg_gdpr_consent')?.checked;
+  const btn = document.getElementById('regSubmitBtn');
+
+  if (!firstName || !lastName || !email || !password || !confirmPassword || !projectId || !partnerCode) {
+    showToast(isEl ? 'Παρακαλούμε συμπληρώστε όλα τα υποχρεωτικά πεδία.' : 'Please fill in all required fields.');
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showToast(isEl ? 'Οι κωδικοί πρόσβασης δεν ταιριάζουν.' : 'Passwords do not match.');
+    return;
+  }
+
+  if (password.length < 8 || !/\d/.test(password)) {
+    showToast(isEl ? 'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει αριθμό.' : 'Password must be at least 8 characters and contain at least one number.');
+    return;
+  }
+
+  if (!gdprConsent) {
+    showToast(isEl ? 'Απαιτείται η συγκατάθεση GDPR.' : 'GDPR consent is required.');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Submitting...';
+  }
+
+  try {
+    const res = await apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: {
+        firstName,
+        lastName,
+        email,
+        password,
+        confirmPassword,
+        projectId: Number(projectId),
+        partnerCode,
+        jobTitle,
+        gdprConsent: true
+      }
+    });
+
+    const modalRoot = document.getElementById('modalRoot');
+    modalRoot.innerHTML = `
+      <div class="modal-backdrop">
+        <div class="modal-window" style="max-width:520px; text-align:center; padding:32px 24px;">
+          <div style="font-size:48px; margin-bottom:12px;">✅</div>
+          <h3 style="margin:0 0 8px 0; font-size:19px; color:#0f172a; font-weight:800;">
+            ${t('regSuccessTitle')}
+          </h3>
+          <p style="font-size:13.5px; color:#475569; line-height:1.5; margin:0 0 20px 0;">
+            ${t('regSuccessMsg')}
+          </p>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:left; font-size:12px; margin-bottom:20px; color:#334155;">
+            <div><strong>${isEl ? 'Αιτών / Ονοματεπώνυμο:' : 'Applicant:'}</strong> ${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
+            <div><strong>${isEl ? 'Εταιρικό Email (Username):' : 'Work Email:'}</strong> ${escapeHtml(email)}</div>
+            <div><strong>${isEl ? 'Εταίρος Κοινοπραξίας:' : 'Partner:'}</strong> ${escapeHtml(partnerCode)}</div>
+            <div><strong>${isEl ? 'Κατάσταση Λογαριασμού:' : 'Status:'}</strong> <span class="badge" style="background:#fef3c7; color:#b45309; font-weight:700; padding:2px 6px;">⏳ PENDING</span></div>
+          </div>
+          <button class="btn btn-primary" style="padding:10px 24px; font-weight:700;" onclick="closeModal()">
+            ${isEl ? 'Επιστροφή στην Αρχική' : 'Back to Login'}
+          </button>
+        </div>
+      </div>
+    `;
+    showToast(isEl ? 'Το αίτημα εγγραφής υποβλήθηκε επιτυχώς!' : 'Registration submitted successfully!');
+  } catch (err) {
+    showToast(err.message);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `🚀 ${t('regSubmitBtn')}`;
+    }
+  }
+}
+
+async function handleApproveUser(userId, name) {
+  const isEl = state.currentLang === 'el';
+  if (!confirm(isEl ? `Είστε βέβαιοι για την έγκριση του χρήστη ${name};` : `Are you sure you want to approve user ${name}?`)) {
+    return;
+  }
+  try {
+    const res = await apiFetch('/api/admin/approve-user', {
+      method: 'POST',
+      body: { userId }
+    });
+    showToast(res.message || (isEl ? 'Ο χρήστης εγκρίθηκε επιτυχώς!' : 'User approved successfully!'));
+    await loadBootstrap();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function handleRejectUser(userId, name) {
+  const isEl = state.currentLang === 'el';
+  if (!confirm(isEl ? `Είστε βέβαιοι για την απόρριψη του αιτήματος του χρήστη ${name};` : `Are you sure you want to reject user ${name}?`)) {
+    return;
+  }
+  try {
+    const res = await apiFetch('/api/admin/reject-user', {
+      method: 'POST',
+      body: { userId }
+    });
+    showToast(res.message || (isEl ? 'Το αίτημα απορρίφθηκε.' : 'User registration rejected.'));
+    await loadBootstrap();
+  } catch (err) {
+    showToast(err.message);
   }
 }
 

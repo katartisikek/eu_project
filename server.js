@@ -202,7 +202,7 @@ async function computeKpiProgress(projectId) {
 }
 
 async function buildBootstrapData(projectId, user) {
-  const allUsersRaw = await db.prepare('SELECT id, username, full_name, email, role, partner_code, project_ids_json, avatar_color FROM users ORDER BY id ASC').all();
+  const allUsersRaw = await db.prepare('SELECT id, username, first_name, last_name, full_name, email, job_title, role, partner_code, project_ids_json, avatar_color, status, active, created_at FROM users ORDER BY id ASC').all();
   const allUsers = (allUsersRaw || []).map(u => {
     let fullName = u.full_name;
     if (u.username === 'tsikalas' && fullName && (fullName.includes('Ioannis') || fullName.includes('Ιωάννης'))) {
@@ -211,9 +211,12 @@ async function buildBootstrapData(projectId, user) {
     return {
       ...u,
       full_name: fullName,
+      status: u.status || (Number(u.active) === 1 ? 'APPROVED' : 'PENDING'),
       project_ids: JSON.parse(u.project_ids_json || '["*"]')
     };
   });
+
+  const pendingUsers = allUsers.filter(u => u.status === 'PENDING' || (Number(u.active) === 0 && u.status !== 'REJECTED'));
 
   const allProjectsRaw = await db.prepare('SELECT * FROM projects ORDER BY id ASC').all();
   const allProjects = (allProjectsRaw || [])
@@ -323,6 +326,7 @@ async function buildBootstrapData(projectId, user) {
   return {
     user,
     users: allUsers,
+    pendingUsers,
     projects: allProjects,
     activeProject,
     partners,
@@ -402,23 +406,48 @@ async function requestHandler(req, res) {
         ? identifier.replace('@katartisi.com', '@katartisi.gr')
         : (identifier.endsWith('@katartisi.gr') ? identifier.replace('@katartisi.gr', '@katartisi.com') : identifier);
 
-      let found = await db.prepare('SELECT * FROM users WHERE (username = ? OR email = ? OR email = ?) AND active = 1').get(identifier, identifier, altEmail);
+      let found = await db.prepare('SELECT * FROM users WHERE (username = ? OR email = ? OR email = ?)').get(identifier, identifier, altEmail);
       if (!found && identifier.toLowerCase().startsWith('koundouraki')) {
         const hash = '12a0bbe0a78a1526ebb445cd17c45b0b:c44a474f2311d5b8162e5b4d1ca9e7cfdde36ce1f0652e4769d3c60d791f588e2e484c0e4740b233b77af9282d50aa6a4a829f119d33b8a54ba231f1baad49f3';
         try {
           await db.prepare(`
-            INSERT INTO users (username, password_hash, full_name, email, role, partner_code, project_ids_json, avatar_color, active, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
+            INSERT INTO users (username, password_hash, full_name, email, role, partner_code, project_ids_json, avatar_color, active, created_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), 'APPROVED')
           `).run('koundouraki', hash, 'Koundouraki (Super Administrator)', 'koundouraki@katartisi.gr', 'SUPER_ADMIN', 'TIHC', '["*"]', '#e11d48');
-          found = await db.prepare('SELECT * FROM users WHERE (username = ? OR email = ? OR email = ?) AND active = 1').get(identifier, identifier, altEmail);
+          found = await db.prepare('SELECT * FROM users WHERE (username = ? OR email = ? OR email = ?)').get(identifier, identifier, altEmail);
         } catch (e) {
           console.error('Auto-provisioning koundouraki error:', e);
         }
       }
-      const isPassValid = found && (found.password_hash ? verifyPassword(pass, found.password_hash) : (found.password === pass));
-      if (!found || !isPassValid) {
+
+      if (!found) {
         return sendJson(res, 401, { error: 'Invalid username/email or password.' });
       }
+
+      const isPassValid = (found.password_hash ? verifyPassword(pass, found.password_hash) : (found.password === pass));
+      if (!isPassValid) {
+        return sendJson(res, 401, { error: 'Invalid username/email or password.' });
+      }
+
+      // Check registration approval status
+      if (found.status === 'PENDING' || (Number(found.active) === 0 && (!found.status || found.status === 'PENDING'))) {
+        return sendJson(res, 403, {
+          error: 'Ο λογαριασμός σας βρίσκεται υπό έγκριση από τον Dissemination Manager (TIHC). Θα ενεργοποιηθεί σύντομα. / Your account registration is pending approval by the Dissemination Manager (TIHC).'
+        });
+      }
+
+      if (found.status === 'REJECTED') {
+        return sendJson(res, 403, {
+          error: 'Το αίτημα εγγραφής σας έχει απορριφθεί. / Your registration request was not approved.'
+        });
+      }
+
+      if (Number(found.active) === 0) {
+        return sendJson(res, 403, {
+          error: 'Ο λογαριασμός σας είναι απενεργοποιημένος. / Your account is disabled.'
+        });
+      }
+
       if (found.username === 'tsikalas' && found.full_name && (found.full_name.includes('Ioannis') || found.full_name.includes('Ιωάννης'))) {
         found.full_name = 'Konstantinos Tsikalas (Super Administrator)';
         try { await db.prepare('UPDATE users SET full_name = ? WHERE id = ?').run(found.full_name, found.id); } catch (e) {}
@@ -437,6 +466,171 @@ async function requestHandler(req, res) {
           partner_code: found.partner_code
         }
       });
+    }
+
+    // Public: Registration Options (Projects & Partners dropdowns)
+    if (pathname === '/api/public/registration-options' && req.method === 'GET') {
+      const allProjects = (await db.prepare('SELECT id, acronym, title, project_number FROM projects ORDER BY id ASC').all()) || [];
+      const projectsWithOptions = [];
+      for (const p of allProjects) {
+        const partners = (await db.prepare('SELECT id, code, name, full_name, country, country_code, role FROM partners WHERE project_id = ? ORDER BY id ASC').all(p.id)) || [];
+        projectsWithOptions.push({
+          id: p.id,
+          acronym: p.acronym,
+          title: p.title,
+          project_number: p.project_number,
+          partners
+        });
+      }
+      return sendJson(res, 200, { projects: projectsWithOptions });
+    }
+
+    // Public: Self-Registration Request (Section 3 & GDPR Section 12)
+    if (pathname === '/api/auth/register' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const firstName = String(body.first_name || body.firstName || '').trim();
+      const lastName = String(body.last_name || body.lastName || '').trim();
+      const email = String(body.email || '').trim().toLowerCase();
+      const password = String(body.password || '').trim();
+      const confirmPassword = String(body.confirm_password || body.confirmPassword || '').trim();
+      const projectId = Number(body.project_id || body.projectId);
+      const partnerCode = String(body.partner_code || body.partnerCode || '').trim().toUpperCase();
+      const jobTitle = String(body.job_title || body.jobTitle || '').trim();
+      const gdprConsent = Boolean(body.gdpr_consent !== undefined ? body.gdpr_consent : body.gdprConsent);
+
+      if (!firstName || !lastName) {
+        return sendJson(res, 400, { error: 'Το όνομα και το επώνυμο είναι υποχρεωτικά. / First name and last name are required.' });
+      }
+      if (!email || !email.includes('@') || !email.includes('.')) {
+        return sendJson(res, 400, { error: 'Μη έγκυρη διεύθυνση εταιρικού email. / Invalid corporate email address.' });
+      }
+      if (!password || password.length < 8 || !/\d/.test(password)) {
+        return sendJson(res, 400, { error: 'Ο κωδικός πρόσβασης πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιέχει τουλάχιστον έναν αριθμό. / Password must be at least 8 characters long and contain at least one number.' });
+      }
+      if (password !== confirmPassword) {
+        return sendJson(res, 400, { error: 'Η επιβεβαίωση κωδικού δεν ταιριάζει. / Password confirmation does not match.' });
+      }
+      if (!projectId) {
+        return sendJson(res, 400, { error: 'Παρακαλούμε επιλέξτε Έργο / Πρόγραμμα. / Project selection is required.' });
+      }
+      if (!partnerCode) {
+        return sendJson(res, 400, { error: 'Παρακαλούμε επιλέξτε Οργανισμό / Εταίρο. / Partner selection is required.' });
+      }
+      if (!gdprConsent) {
+        return sendJson(res, 400, { error: 'Η αποδοχή των όρων GDPR και πολιτικής απορρήτου είναι υποχρεωτική. / GDPR consent is required.' });
+      }
+
+      const project = await db.prepare('SELECT id, acronym FROM projects WHERE id = ?').get(projectId);
+      if (!project) {
+        return sendJson(res, 400, { error: 'Το επιλεγμένο έργο δεν βρέθηκε. / Selected project not found.' });
+      }
+
+      const partner = await db.prepare('SELECT id, code, name FROM partners WHERE project_id = ? AND UPPER(code) = ?').get(projectId, partnerCode);
+      if (!partner) {
+        return sendJson(res, 400, { error: 'Ο επιλεγμένος εταίρος δεν ανήκει στο συγκεκριμένο έργο. / Selected partner does not belong to this project.' });
+      }
+
+      const existing = await db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(email, email);
+      if (existing) {
+        return sendJson(res, 400, { error: 'Υπάρχει ήδη εγγεγραμμένος λογαριασμός με αυτό το email. / An account with this email already exists.' });
+      }
+
+      const hash = hashPassword(password);
+      const fullName = `${firstName} ${lastName}`;
+      const avatarColors = ['#1e40af', '#047857', '#b91c1c', '#7c3aed', '#c2410c', '#0891b2', '#0284c7'];
+      const avatarColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+
+      await db.prepare(`
+        INSERT INTO users (
+          username, password_hash, first_name, last_name, full_name, email, job_title,
+          role, partner_code, project_ids_json, avatar_color, active, status, gdpr_consent, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PARTNER_EDITOR', ?, ?, ?, 0, 'PENDING', 1, datetime('now'))
+      `).run(
+        email, hash, firstName, lastName, fullName, email, jobTitle,
+        partnerCode, JSON.stringify([projectId]), avatarColor
+      );
+
+      await logAudit(projectId, null, { full_name: fullName, role: 'APPLICANT' }, 'USER_REGISTRATION_REQUESTED', 'user', email, `Registration request submitted by ${fullName} (${email}, ${partnerCode}, ${jobTitle || 'Partner Staff'}). Status: PENDING.`);
+
+      try {
+        await db.prepare(`
+          INSERT INTO email_notifications (project_id, recipient_email, recipient_name, notification_type, subject, body, status, sent_at)
+          VALUES (?, ?, ?, 'REGISTRATION_REQUEST', ?, ?, 'QUEUED', datetime('now'))
+        `).run(
+          projectId,
+          'euprojects@katartisi.gr',
+          'Dissemination Manager (TIHC)',
+          `Νέο Αίτημα Εγγραφής Εταίρου: ${fullName} (${partnerCode})`,
+          `Ο χρήστης ${fullName} (${email}, ${jobTitle || 'Partner Staff'}) υπέβαλε αίτημα εγγραφής για το έργο ${project.acronym} (${partnerCode}). Συνδεθείτε στην πλατφόρμα (Καρτέλα 8. Διαχείριση) για έλεγχο και έγκριση.`
+        );
+      } catch (e) {}
+
+      return sendJson(res, 201, {
+        ok: true,
+        message: 'Το αίτημα εγγραφής σας υποβλήθηκε επιτυχώς! Ο Dissemination Manager (TIHC) θα ελέγξει τα στοιχεία σας και θα ενεργοποιήσει την πρόσβασή σας. / Your registration request has been submitted! It is pending review and approval by the Dissemination Manager (TIHC).'
+      });
+    }
+
+    // Admin: Approve User Registration
+    if (pathname === '/api/admin/approve-user' && req.method === 'POST') {
+      const user = await getCurrentUser(reqUrl, req.headers);
+      if (user.role !== 'SUPER_ADMIN' && user.role !== 'DISSEMINATION_MANAGER') {
+        return sendJson(res, 403, { error: 'Only Super Administrator or Dissemination Manager can approve user registrations.' });
+      }
+      const body = await readJsonBody(req);
+      const targetId = Number(body.userId);
+      if (!targetId) return sendJson(res, 400, { error: 'User ID is required.' });
+
+      const target = await db.prepare('SELECT * FROM users WHERE id = ?').get(targetId);
+      if (!target) return sendJson(res, 404, { error: 'User not found.' });
+
+      const role = body.role ? String(body.role).trim() : (target.role || 'PARTNER_EDITOR');
+      const partnerCode = body.partner_code ? String(body.partner_code).trim().toUpperCase() : target.partner_code;
+
+      await db.prepare(`
+        UPDATE users SET active = 1, status = 'APPROVED', role = ?, partner_code = ?
+        WHERE id = ?
+      `).run(role, partnerCode, targetId);
+
+      await logAudit(null, null, user, 'USER_REGISTRATION_APPROVED', 'user', target.email, `Approved registration for ${target.full_name} (${target.email}, role=${role}, partner=${partnerCode}).`);
+
+      try {
+        await db.prepare(`
+          INSERT INTO email_notifications (project_id, recipient_email, recipient_name, notification_type, subject, body, status, sent_at)
+          VALUES (1, ?, ?, 'REGISTRATION_APPROVED', ?, ?, 'SENT', datetime('now'))
+        `).run(
+          target.email,
+          target.full_name,
+          'Έγκριση Λογαριασμού — TIHC Dissemination Platform',
+          `Αγαπητέ/ή ${target.full_name},\n\nΟ λογαριασμός σας στην πλατφόρμα TIHC Dissemination Monitoring Platform εγκρίθηκε. Μπορείτε πλέον να συνδεθείτε με το εταιρικό σας email (${target.email}) και τον κωδικό πρόσβασης που επιλέξατε κατά την εγγραφή σας.`
+        );
+      } catch (e) {}
+
+      return sendJson(res, 200, { ok: true, message: `Ο χρήστης ${target.full_name} εγκρίθηκε και ενεργοποιήθηκε επιτυχώς! / User ${target.full_name} approved and activated!` });
+    }
+
+    // Admin: Reject User Registration
+    if (pathname === '/api/admin/reject-user' && req.method === 'POST') {
+      const user = await getCurrentUser(reqUrl, req.headers);
+      if (user.role !== 'SUPER_ADMIN' && user.role !== 'DISSEMINATION_MANAGER') {
+        return sendJson(res, 403, { error: 'Only Super Administrator or Dissemination Manager can reject user registrations.' });
+      }
+      const body = await readJsonBody(req);
+      const targetId = Number(body.userId);
+      const reason = String(body.reason || 'Consortium verification check failed').trim();
+      if (!targetId) return sendJson(res, 400, { error: 'User ID is required.' });
+
+      const target = await db.prepare('SELECT * FROM users WHERE id = ?').get(targetId);
+      if (!target) return sendJson(res, 404, { error: 'User not found.' });
+
+      await db.prepare(`
+        UPDATE users SET active = 0, status = 'REJECTED'
+        WHERE id = ?
+      `).run(targetId);
+
+      await logAudit(null, null, user, 'USER_REGISTRATION_REJECTED', 'user', target.email, `Rejected registration for ${target.full_name} (${target.email}). Reason: ${reason}`);
+
+      return sendJson(res, 200, { ok: true, message: `Το αίτημα εγγραφής του χρήστη ${target.full_name} απορρίφθηκε. / User registration rejected.` });
     }
 
     // Database Backup Download Endpoint (Section 12: Daily Backups)
@@ -459,8 +653,8 @@ async function requestHandler(req, res) {
     // Admin: Create New User (Section 3: RBAC User Management)
     if (pathname === '/api/admin/users' && req.method === 'POST') {
       const user = await getCurrentUser(reqUrl, req.headers);
-      if (user.role !== 'SUPER_ADMIN') {
-        return sendJson(res, 403, { error: 'Only Super Administrator can create new users.' });
+      if (user.role !== 'SUPER_ADMIN' && user.role !== 'DISSEMINATION_MANAGER') {
+        return sendJson(res, 403, { error: 'Only Super Administrator or Dissemination Manager can create new users.' });
       }
       const body = await readJsonBody(req);
       const username = String(body.username || '').trim().toLowerCase();

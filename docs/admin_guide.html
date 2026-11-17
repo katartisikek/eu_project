@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<title>Εγχειρίδιο Διαχειριστή — TIHC Dissemination Platform</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { color: #0f172a; font-size: 12px; line-height: 1.55; margin: 0; }
+  .cover { background: linear-gradient(135deg,#0b132b,#1e3a8a); color:#fff; padding: 36px; border-radius: 12px; margin-bottom: 22px; }
+  .cover h1 { font-size: 24px; margin: 0 0 8px; }
+  .cover p { margin: 0; color:#cbd5e1; font-size: 13px; }
+  h2 { color:#1e3a8a; font-size: 16px; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px; margin: 22px 0 10px; }
+  h3 { font-size: 13px; margin: 14px 0 4px; color:#0f172a; }
+  table { width:100%; border-collapse: collapse; margin: 8px 0; }
+  th, td { border:1px solid #cbd5e1; padding: 6px 8px; text-align:left; vertical-align: top; }
+  th { background:#1e3a8a; color:#fff; font-size: 11px; }
+  tr:nth-child(even) td { background:#f8fafc; }
+  code { background:#f1f5f9; padding: 1px 5px; border-radius: 4px; font-family: Consolas, monospace; }
+  .box { border-left: 4px solid #2563eb; background:#eff6ff; padding: 9px 12px; margin: 10px 0; border-radius: 4px; }
+  .warn { border-left-color:#d97706; background:#fffbeb; }
+  ol, ul { margin: 4px 0 8px 18px; padding: 0; }
+  .footer { margin-top: 26px; font-size: 10px; color:#64748b; text-align:center; border-top:1px solid #e2e8f0; padding-top: 8px; }
+  .pb { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Εγχειρίδιο Διαχειριστή Πλατφόρμας</h1>
+  <p>TIHC Dissemination Monitoring &amp; Reporting Platform<br>
+  Τεχνικές Σχολές Επιμελητηρίου Ηρακλείου — Παρακολούθηση Διάχυσης Ευρωπαϊκών Έργων (Erasmus+)</p>
+</div>
+
+<h2>1. Τι είναι η πλατφόρμα</h2>
+<p>Ενιαίο διαδικτυακό σύστημα για την καταγραφή, τον έλεγχο και την αναφορά των δράσεων διάχυσης των ευρωπαϊκών έργων. Σήμερα περιλαμβάνει το έργο <strong>IN-BOUND</strong> (2021-1-FI01-KA220-VET-000032984) με 124 καταγεγραμμένες δράσεις και το πλαίσιο <strong>NO ONE BEHIND!</strong>. Κάθε εταίρος καταχωρεί τις δράσεις και τα αποδεικτικά του, και ο διαχειριστής ελέγχει, εγκρίνει και εξάγει αναφορές.</p>
+
+<h2>2. Πρόσβαση</h2>
+<table>
+  <tr><th style="width:30%">Στοιχείο</th><th>Τιμή</th></tr>
+  <tr><td>Διεύθυνση (Live)</td><td>______________________________ (συμπληρώστε το URL του Vercel)</td></tr>
+  <tr><td>Super Admin 1</td><td><code>tsikalas@katartisi.com</code> — Κωνσταντίνος Τσικαλάς</td></tr>
+  <tr><td>Super Admin 2</td><td><code>koundouraki@katartisi.gr</code> (δέχεται και <code>.com</code>) — Κουνδουράκη</td></tr>
+  <tr><td>Αρχικός κωδικός</td><td><code>Kat123!!</code></td></tr>
+</table>
+<div class="box warn"><strong>Ασφάλεια:</strong> Αλλάξτε τον αρχικό κωδικό στην πρώτη σύνδεση (Διαχείριση → Χρήστες → επεξεργασία χρήστη) και μην τον κοινοποιείτε. Το παρόν έγγραφο να φυλάσσεται με προσοχή.</div>
+
+<h2>3. Είσοδος</h2>
+<ol>
+  <li>Ανοίξτε τη διεύθυνση της πλατφόρμας· εμφανίζεται η αρχική σελίδα.</li>
+  <li>Στο πλαίσιο <em>Platform Access</em> γράψτε email (ή username) και κωδικό.</li>
+  <li>Πατήστε <strong>Sign In to Workspace →</strong>. Η εναλλαγή γλώσσας (🇬🇧 EN / 🇬🇷 ΕΛ) βρίσκεται πάνω δεξιά.</li>
+  <li>Η αποσύνδεση γίνεται από το κουμπί <strong>Sign Out</strong> πάνω δεξιά.</li>
+</ol>
+
+<h2>4. Ρόλοι χρηστών</h2>
+<table>
+  <tr><th style="width:28%">Ρόλος</th><th>Δικαιώματα</th></tr>
+  <tr><td>Super Admin</td><td>Πλήρης πρόσβαση: όλα τα έργα, δημιουργία/επεξεργασία χρηστών, νέα έργα, κατηγορίες, αντίγραφα ασφαλείας.</td></tr>
+  <tr><td>Dissemination Manager (TIHC)</td><td>Διαχείριση διάχυσης, έγκριση δράσεων, νέα έργα από πρότυπο, εξαγωγές.</td></tr>
+  <tr><td>Partner Editor</td><td>Καταχώριση και επεξεργασία δράσεων μόνο του δικού του φορέα.</td></tr>
+  <tr><td>Reviewer / Auditor</td><td>Μόνο ανάγνωση και έλεγχος, χωρίς αλλαγές.</td></tr>
+</table>
+
+<h2 class="pb">5. Οι 8 ενότητες</h2>
+<table>
+  <tr><th style="width:28%">Καρτέλα</th><th>Χρήση</th></tr>
+  <tr><td>1. Dashboard</td><td>Συνολικά στατιστικά, γραφήματα ανά εταίρο, κατηγορία και μήνα, πρόοδος KPIs.</td></tr>
+  <tr><td>2. Τι εκκρεμεί ανά εταίρο</td><td>Εντοπισμός δράσεων χωρίς αποδεικτικά ή προς διόρθωση· αποστολή υπενθυμίσεων.</td></tr>
+  <tr><td>3. Μητρώο Δράσεων &amp; Έλεγχος</td><td>Αναζήτηση/φίλτρα, προεπισκόπηση αρχείων, έγκριση ή επιστροφή για διόρθωση.</td></tr>
+  <tr><td>4. Φόρμα Καταχώρισης</td><td>Νέα δράση με πεδία ανά κατηγορία και μεταφόρτωση αποδεικτικών.</td></tr>
+  <tr><td>5. KPIs &amp; Στόχοι</td><td>Επίτευξη έναντι των συμβατικών στόχων.</td></tr>
+  <tr><td>6. Εξαγωγή Αναφορών</td><td>Επίσημη αναφορά διάχυσης (εκτύπωση/PDF) και αρχείο Excel.</td></tr>
+  <tr><td>7. Εισαγωγή Excel</td><td>Μαζική εισαγωγή δράσεων με προηγούμενο έλεγχο εγκυρότητας.</td></tr>
+  <tr><td>8. Διαχείριση &amp; Audit</td><td>Χρήστες, κατηγορίες, ιστορικό ενεργειών, αντίγραφο ασφαλείας βάσης.</td></tr>
+</table>
+
+<h2>6. Συνήθεις εργασίες διαχειριστή</h2>
+<h3>Προσθήκη νέου χρήστη</h3>
+<ol>
+  <li>Καρτέλα <strong>8. Διαχείριση</strong> → κάρτα Χρήστες → <strong>➕ Add User</strong>.</li>
+  <li>Συμπληρώστε username, email, ονοματεπώνυμο, κωδικό.</li>
+  <li>Επιλέξτε ρόλο και, για Partner Editor, τον φορέα (partner).</li>
+  <li>Αποθηκεύστε· ο χρήστης μπορεί να συνδεθεί αμέσως.</li>
+</ol>
+<h3>Έλεγχος και έγκριση δράσης</h3>
+<ol>
+  <li>Καρτέλα <strong>3. Μητρώο Δράσεων</strong>, φιλτράρετε κατάσταση «Submitted».</li>
+  <li>Ανοίξτε «Review / Files», ελέγξτε αποδεικτικά και μετρικές.</li>
+  <li>Επιλέξτε <em>Approved</em> ή <em>Needs Revision</em> με σχόλιο προς τον εταίρο.</li>
+</ol>
+<h3>Εξαγωγή αναφοράς</h3>
+<ol>
+  <li>Καρτέλα <strong>6. Εξαγωγή Αναφορών</strong>.</li>
+  <li>Επιλέξτε φίλτρα (εταίρος, κατάσταση, γλώσσα) και πατήστε την προβολή PDF ή το Excel.</li>
+  <li>Στην προβολή PDF χρησιμοποιήστε «Εκτύπωση / Αποθήκευση ως PDF».</li>
+</ol>
+<h3>Υπενθύμιση σε εταίρο</h3>
+<p>Καρτέλα <strong>2</strong> → «Send Reminder» δίπλα στον εταίρο με εκκρεμότητες, ή μαζική υπενθύμιση προς όλους.</p>
+<h3>Αντίγραφο ασφαλείας</h3>
+<p>Καρτέλα <strong>8</strong> → κουμπί λήψης αντιγράφου ασφαλείας βάσης. Συνιστάται τακτική λήψη.</p>
+
+<h2>7. Κανόνες δεδομένων</h2>
+<ul>
+  <li><strong>Διαχωρισμός μετρικών:</strong> Reach, Views, Impressions, συμμετέχοντες και παραλήπτες newsletter καταγράφονται ξεχωριστά και δεν αθροίζονται μεταξύ τους.</li>
+  <li><strong>Αποδεικτικά:</strong> κάθε δράση πρέπει να έχει screenshot ή σύνδεσμο· οι αλλαγές αρχείων κρατούν ιστορικό εκδόσεων.</li>
+  <li><strong>GDPR:</strong> τα παρουσιολόγια και προσωπικά δεδομένα προσβάσιμα μόνο με τα κατάλληλα δικαιώματα ρόλου.</li>
+  <li><strong>Audit trail:</strong> κάθε ενέργεια καταγράφεται με χρήστη και ώρα (καρτέλα 8).</li>
+</ul>
+
+<h2>8. Υποστήριξη και αντιμετώπιση προβλημάτων</h2>
+<table>
+  <tr><th style="width:38%">Πρόβλημα</th><th>Ενέργεια</th></tr>
+  <tr><td>«Invalid username/email or password»</td><td>Ελέγξτε email/κωδικό (διάκριση πεζών-κεφαλαίων στον κωδικό). Δοκιμάστε με το username.</td></tr>
+  <tr><td>Η σελίδα δεν ενημερώνεται μετά από αλλαγή</td><td>Πατήστε Ctrl + F5 (καθαρισμός cache).</td></tr>
+  <tr><td>«No project data available»</td><td>Η βάση δεν έχει δεδομένα· επικοινωνήστε με τον τεχνικό υπεύθυνο.</td></tr>
+  <tr><td>Σφάλμα 500 / μη διαθέσιμη σελίδα</td><td>Ξαναφορτώστε μετά από λίγα λεπτά· αν επιμένει, ενημερώστε τον τεχνικό υπεύθυνο.</td></tr>
+</table>
+
+<div class="footer">
+  Τεχνικές Σχολές Επιμελητηρίου Ηρακλείου (TIHC) • Εγχειρίδιο Διαχειριστή • Co-funded by the European Union
+</div>
+</body>
+</html>
+

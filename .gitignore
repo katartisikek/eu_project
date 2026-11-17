@@ -17,4 +17,5 @@ data/*.sqlite-journal
 .system_generated/
 scratch/
 exports/
+docs/.edge_tmp/
 
